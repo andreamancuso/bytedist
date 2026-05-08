@@ -109,8 +109,13 @@ As of May 8, 2026, the repository has completed the framing and setup work plus 
   - JSON remains the only supported v0 TOC encoding;
   - the reader explicitly rejects missing or unsupported TOC encodings;
   - binary TOC support is deferred until measured payload, streaming, or browser-memory pressure justifies it.
+- Stage 18 browser range loading is complete:
+  - `openPayloadFromUrlRange` opens hosted external payloads with HTTP byte ranges;
+  - the range reader fetches footer/header/TOC first and chunk bytes on demand;
+  - embedded base64 payloads remain full-decode by design;
+  - optional byte caching is documented and defaults to off.
 
-Built-in compression codecs, WASM compression parity, streaming/range loading, and broader browser compatibility notes are still future work.
+Built-in compression codecs, WASM compression parity, and broader compatibility notes are still future work.
 
 ## Important Product Language
 
@@ -1880,6 +1885,8 @@ Progress:
 
 ## Stage 18: Streaming and Random Access
 
+Status: Complete for browser HTTP range loading and lazy read/cache policy. Node filesystem random access, WASM range integration, and advanced streaming remain future work.
+
 ### 18.1 External Payload Range Loading
 
 For non-embedded payloads, support HTTP range requests later.
@@ -1890,6 +1897,10 @@ Acceptance criteria:
 - Reader can fetch only selected chunks.
 - Falls back gracefully when range requests are unavailable.
 
+Progress:
+
+- Complete. `bytedist/browser` exports `openPayloadFromUrlRange`, which requests the footer with `Range: bytes=-40`, then fetches header and TOC ranges, and reads selected chunk ranges on demand. If the first range request returns `200 OK`, it falls back to full-buffer `openPayload`.
+
 ### 18.2 Embedded Payload Limitation Docs
 
 Document that embedded base64 payloads generally require full decode.
@@ -1897,6 +1908,10 @@ Document that embedded base64 payloads generally require full decode.
 Acceptance criteria:
 
 - Users understand size/performance tradeoffs.
+
+Progress:
+
+- Complete. `docs/browser.md` documents that embedded base64 payloads generally require full decode before opening and are not streaming/range-loaded.
 
 ### 18.3 Lazy Chunk Decompression
 
@@ -1907,6 +1922,10 @@ Acceptance criteria:
 - Chunks decompress on read.
 - Cache behavior is configurable or documented.
 
+Progress:
+
+- Complete. Existing in-memory and new range-loaded readers decompress chunks only inside `readBytes`. Range tests cover unsupported compression and lazy selected-chunk fetches.
+
 ### 18.4 Cache Strategy
 
 Add optional in-memory cache for decompressed chunks.
@@ -1915,6 +1934,10 @@ Acceptance criteria:
 
 - Large chunks can avoid repeated decompression.
 - Cache can be disabled.
+
+Progress:
+
+- Complete. `openPayloadFromUrlRange` accepts `cache: "none" | "bytes"`, defaults to `"none"`, and clears cached bytes on `close()`. Tests cover repeated reads with and without byte caching.
 
 ## Stage 19: Signing and Provenance
 

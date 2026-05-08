@@ -12,6 +12,7 @@ describe("public documentation", () => {
     expect(readme).toContain("bytedist bundle-html");
     expect(readme).toContain("createPayload");
     expect(readme).toContain("openPayload");
+    expect(readme).toContain("openPayloadFromUrlRange");
     expect(readme).toContain("single-file");
     expect(readme).toContain("npm run example:basic");
     expect(readme).toContain("npm run example:browser-gallery");
@@ -21,6 +22,7 @@ describe("public documentation", () => {
     expect(readme).toContain("not DRM");
     expect(readme).toContain("must not be used to hide secrets");
     expect(readme).toContain("Experimental WASM reader/validator wrapper");
+    expect(readme).toContain("Browser loading notes");
 
     for (const comparison of ["ZIP", "Emscripten", "Vite", "Web Bundles", "glTF/GLB"]) {
       expect(readme).toContain(comparison);
@@ -66,5 +68,15 @@ describe("public documentation", () => {
     expect(wasmDoc).toContain("npm run wasm:test");
     expect(wasmDoc).toContain("TypeScript reader remains the canonical");
     expect(wasmDoc).toContain("Memory ownership rules");
+  });
+
+  it("documents browser loading behavior", async () => {
+    const browserDoc = await fs.readFile(new URL("../docs/browser.md", import.meta.url), "utf8");
+
+    expect(browserDoc).toContain("openPayloadFromUrlRange");
+    expect(browserDoc).toContain("Range: bytes=-40");
+    expect(browserDoc).toContain("full base64 decode");
+    expect(browserDoc).toContain('cache: "bytes"');
+    expect(browserDoc).toContain("object URLs");
   });
 });

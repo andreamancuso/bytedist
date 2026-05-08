@@ -2,13 +2,19 @@ import { describe, expect, it, vi } from "vitest";
 import fs from "node:fs/promises";
 
 import { createPayload } from "../core/index.js";
-import { PayloadLoadError } from "../format/errors.js";
+import {
+  PayloadCompressionError,
+  PayloadFormatError,
+  PayloadIntegrityMismatchError,
+  PayloadLoadError
+} from "../format/errors.js";
 import {
   createChunkObjectUrl,
   loadPayloadFromBlob,
   loadPayloadFromFile,
   loadPayloadFromUrl,
   openEmbeddedPayload,
+  openPayloadFromUrlRange,
   readEmbeddedPayload,
   readEmbeddedWasm,
   readChunkAsBlob
@@ -37,6 +43,111 @@ describe("browser payload helpers", () => {
     await loadPayloadFromUrl("demo.bytedist", { fetch: fetcher, requestInit });
 
     expect(fetcher).toHaveBeenCalledWith("demo.bytedist", requestInit);
+  });
+
+  it("opens external payloads by fetching footer and TOC ranges first", async () => {
+    const payload = await createBrowserFixture();
+    const toc = readToc(payload);
+    const footer = readFooter(payload);
+    const fetcher = createRangeFetch(payload);
+
+    const archive = await openPayloadFromUrlRange("demo.bytedist", { fetch: fetcher });
+
+    expect(readRangeHeaders(fetcher)).toEqual([
+      "bytes=-40",
+      "bytes=0-23",
+      `bytes=${footer.tocOffset}-${footer.tocOffset + footer.tocLength - 1}`
+    ]);
+
+    await expect(archive.readText("message.txt")).resolves.toBe("hello browser");
+
+    const message = toc.chunks.find((chunk) => chunk.name === "message.txt");
+    expect(message).toBeDefined();
+    expect(readRangeHeaders(fetcher).at(-1)).toBe(
+      `bytes=${message?.offset}-${(message?.offset ?? 0) + (message?.storedLength ?? 0) - 1}`
+    );
+  });
+
+  it("falls back to full-buffer loading when range requests are ignored", async () => {
+    const payload = await createBrowserFixture();
+    const fetcher = createRangeFetch(payload, { ignoreRange: true });
+
+    const archive = await openPayloadFromUrlRange("demo.bytedist", { fetch: fetcher });
+
+    await expect(archive.readText("message.txt")).resolves.toBe("hello browser");
+    expect(readRangeHeaders(fetcher)).toEqual(["bytes=-40"]);
+  });
+
+  it("controls repeated range reads with the cache option", async () => {
+    const payload = await createBrowserFixture();
+    const toc = readToc(payload);
+    const message = toc.chunks.find((chunk) => chunk.name === "message.txt");
+    const messageRange = `bytes=${message?.offset}-${(message?.offset ?? 0) + (message?.storedLength ?? 0) - 1}`;
+
+    const uncachedFetch = createRangeFetch(payload);
+    const uncached = await openPayloadFromUrlRange("demo.bytedist", { fetch: uncachedFetch });
+    await uncached.readText("message.txt");
+    await uncached.readText("message.txt");
+    expect(readRangeHeaders(uncachedFetch).filter((range) => range === messageRange)).toHaveLength(
+      2
+    );
+
+    const cachedFetch = createRangeFetch(payload);
+    const cached = await openPayloadFromUrlRange("demo.bytedist", {
+      fetch: cachedFetch,
+      cache: "bytes"
+    });
+    await cached.readText("message.txt");
+    await cached.readText("message.txt");
+    expect(readRangeHeaders(cachedFetch).filter((range) => range === messageRange)).toHaveLength(1);
+  });
+
+  it("verifies range-loaded payloads lazily and reports integrity failures", async () => {
+    const payload = await createBrowserFixture();
+    const archive = await openPayloadFromUrlRange("demo.bytedist", {
+      fetch: createRangeFetch(payload)
+    });
+
+    await expect(archive.verify()).resolves.toBeUndefined();
+
+    const tampered = payload.slice();
+    tampered[readToc(tampered).chunks.find((chunk) => chunk.name === "message.txt")?.offset ?? 0] =
+      0;
+    const tamperedArchive = await openPayloadFromUrlRange("demo.bytedist", {
+      fetch: createRangeFetch(tampered)
+    });
+
+    await expect(tamperedArchive.verify()).rejects.toThrow(PayloadIntegrityMismatchError);
+  });
+
+  it("fails range reads clearly for invalid ranges and closed archives", async () => {
+    const payload = await createBrowserFixture();
+    await expect(
+      openPayloadFromUrlRange("demo.bytedist", {
+        fetch: createRangeFetch(payload, { omitContentRange: true })
+      })
+    ).rejects.toThrow(PayloadLoadError);
+
+    const invalidFooter = payload.slice();
+    invalidFooter[invalidFooter.byteLength - 40] = 0;
+    await expect(
+      openPayloadFromUrlRange("demo.bytedist", { fetch: createRangeFetch(invalidFooter) })
+    ).rejects.toThrow(PayloadFormatError);
+
+    const archive = await openPayloadFromUrlRange("demo.bytedist", {
+      fetch: createRangeFetch(payload)
+    });
+    archive.close();
+    await expect(archive.readBytes("message.txt")).rejects.toThrow(PayloadFormatError);
+  });
+
+  it("reports unsupported compression from range chunk reads", async () => {
+    const payload = await createCompressedBrowserFixture();
+    const archive = await openPayloadFromUrlRange("demo.bytedist", {
+      fetch: createRangeFetch(payload)
+    });
+
+    await expect(archive.readBytes("message.txt")).rejects.toThrow(PayloadCompressionError);
   });
 
   it("reports HTTP failures clearly", async () => {
@@ -236,6 +347,95 @@ function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
   const buffer = new ArrayBuffer(bytes.byteLength);
   new Uint8Array(buffer).set(bytes);
   return buffer;
+}
+
+function readFooter(payload: Uint8Array): {
+  readonly tocOffset: number;
+  readonly tocLength: number;
+} {
+  const view = new DataView(payload.buffer, payload.byteOffset + payload.byteLength - 40, 40);
+
+  return {
+    tocOffset: Number(view.getBigUint64(12, true)),
+    tocLength: Number(view.getBigUint64(20, true))
+  };
+}
+
+function readToc(payload: Uint8Array): {
+  readonly chunks: readonly {
+    readonly name: string;
+    readonly offset: number;
+    readonly storedLength: number;
+  }[];
+} {
+  const footer = readFooter(payload);
+  return JSON.parse(
+    new TextDecoder().decode(payload.slice(footer.tocOffset, footer.tocOffset + footer.tocLength))
+  ) as {
+    readonly chunks: readonly {
+      readonly name: string;
+      readonly offset: number;
+      readonly storedLength: number;
+    }[];
+  };
+}
+
+function createRangeFetch(
+  payload: Uint8Array,
+  options: { readonly ignoreRange?: boolean; readonly omitContentRange?: boolean } = {}
+): ReturnType<typeof vi.fn> {
+  return vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+    const range = new Headers(init?.headers).get("Range");
+
+    if (options.ignoreRange === true) {
+      return new Response(toArrayBuffer(payload));
+    }
+
+    if (range === null) {
+      return new Response("missing range", { status: 400, statusText: "Bad Request" });
+    }
+
+    const bounds = parseRangeHeader(range, payload.byteLength);
+    const body = payload.slice(bounds.start, bounds.end + 1);
+    const headers = new Headers();
+    if (options.omitContentRange !== true) {
+      headers.set("Content-Range", `bytes ${bounds.start}-${bounds.end}/${payload.byteLength}`);
+    }
+
+    return new Response(toArrayBuffer(body), {
+      status: 206,
+      statusText: "Partial Content",
+      headers
+    });
+  });
+}
+
+function parseRangeHeader(
+  range: string,
+  totalLength: number
+): { readonly start: number; readonly end: number } {
+  const suffix = /^bytes=-(\d+)$/.exec(range);
+  if (suffix !== null) {
+    const length = Number(suffix[1]);
+    return {
+      start: totalLength - length,
+      end: totalLength - 1
+    };
+  }
+
+  const explicit = /^bytes=(\d+)-(\d+)$/.exec(range);
+  if (explicit === null) {
+    throw new Error(`Unexpected range header: ${range}`);
+  }
+
+  return {
+    start: Number(explicit[1]),
+    end: Number(explicit[2])
+  };
+}
+
+function readRangeHeaders(fetcher: ReturnType<typeof vi.fn>): readonly string[] {
+  return fetcher.mock.calls.map(([, init]) => new Headers(init?.headers).get("Range") ?? "");
 }
 
 function createDocumentStub(textContent: string): Pick<Document, "querySelector"> & {

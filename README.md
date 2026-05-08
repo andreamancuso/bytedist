@@ -14,6 +14,7 @@ blobs make an export harder to ship, inspect, or maintain.
 
 - Writes versioned `.bytedist` payloads with a footer-located JSON TOC.
 - Reads payloads through TypeScript APIs in Node.js and browsers.
+- Supports HTTP range loading for hosted external payloads.
 - Verifies per-chunk SHA-256 metadata and TOC CRC32 corruption checks.
 - Packs directories and writes payload files through `bytedist/node`.
 - Provides CLI commands for `pack`, `inspect`, `verify`, and `bundle-html`.
@@ -106,6 +107,16 @@ document.querySelector("img")?.setAttribute("src", image.url);
 
 // Revoke when the resource is no longer displayed.
 image.revoke();
+```
+
+Load a hosted payload through HTTP ranges:
+
+```ts
+import { openPayloadFromUrlRange } from "bytedist/browser";
+
+const archive = await openPayloadFromUrlRange("artifact.bytedist", {
+  cache: "none"
+});
 ```
 
 Embed a payload into HTML:
@@ -204,16 +215,18 @@ Available today:
 - Directory packing helpers for Node.js.
 - Browser payload loading and object URL helpers.
 - Single-file HTML payload embedding helpers.
+- HTTP range loading for external browser payloads.
 - CLI commands for `pack`, `inspect`, `verify`, and `bundle-html`.
 - Adapter-based compression plumbing.
 - Format documentation in [`docs/format.md`](docs/format.md).
+- Browser loading notes in [`docs/browser.md`](docs/browser.md).
 - Experimental WASM reader/validator wrapper in `bytedist/wasm`.
 - WASM runtime notes in [`docs/wasm.md`](docs/wasm.md).
 
 Planned next:
 
 - built-in compression adapters;
-- broader browser compatibility notes.
+- broader compatibility notes.
 
 ## Scripts
 
