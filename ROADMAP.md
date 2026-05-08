@@ -1553,6 +1553,8 @@ Progress:
 
 ## Stage 13: Public README
 
+Status: Complete.
+
 ### 13.1 Write README Intro
 
 Acceptance criteria:
@@ -1562,6 +1564,10 @@ Acceptance criteria:
 - Shows CLI example.
 - Mentions single-file HTML.
 - States non-DRM limitation.
+
+Progress:
+
+- Complete. `README.md` now opens with the packaging problem, shows CLI and TypeScript pack/read examples, mentions single-file HTML, and states the non-DRM/no-secrets boundary.
 
 ### 13.2 Add Comparison Section
 
@@ -1578,12 +1584,20 @@ Acceptance criteria:
 - Comparisons are fair and non-dismissive.
 - The library's niche is clear.
 
+Progress:
+
+- Complete. `README.md` compares ByteDist with ZIP/TAR, Emscripten file packages, Vite single-file plugins, Web Bundles, and glTF/GLB while keeping the project niche explicit.
+
 ### 13.3 Add Use Cases
 
 Acceptance criteria:
 
 - At least five use cases are listed.
 - No private host application is named as a use case.
+
+Progress:
+
+- Complete. `README.md` lists six generic use cases and does not name any private host application.
 
 ## Stage 14: Examples v1
 
