@@ -13,6 +13,11 @@ describe("public documentation", () => {
     expect(readme).toContain("createPayload");
     expect(readme).toContain("openPayload");
     expect(readme).toContain("single-file");
+    expect(readme).toContain("npm run example:basic");
+    expect(readme).toContain("npm run example:browser-gallery");
+    expect(readme).toContain("npm run example:single-file-html");
+    expect(readme).toContain("npm run example:interactive-document");
+    expect(readme).toContain("npm run example:all");
     expect(readme).toContain("not DRM");
     expect(readme).toContain("must not be used to hide secrets");
 

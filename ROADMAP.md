@@ -1601,6 +1601,8 @@ Progress:
 
 ## Stage 14: Examples v1
 
+Status: Complete.
+
 ### 14.1 Basic Node Example
 
 Packs files and reads them back.
@@ -1608,6 +1610,10 @@ Packs files and reads them back.
 Acceptance criteria:
 
 - Example runs with `npm run example:basic`.
+
+Progress:
+
+- Complete. `examples/basic.mjs` packs a generic payload, reads text and JSON back, verifies integrity, and runs through `npm run example:basic`.
 
 ### 14.2 Browser Image Gallery Example
 
@@ -1618,6 +1624,10 @@ Acceptance criteria:
 - Demonstrates object URLs or direct blob handling.
 - Uses no framework or uses a minimal framework-neutral setup.
 
+Progress:
+
+- Complete. `examples/browser-gallery.mjs` generates a `.bytedist` gallery payload and framework-free file-input HTML page that displays image chunks through Blob object URLs.
+
 ### 14.3 Single-File HTML Example
 
 Produces a single HTML file containing its payload.
@@ -1627,6 +1637,10 @@ Acceptance criteria:
 - The output opens from disk.
 - It renders content from the embedded payload.
 
+Progress:
+
+- Complete. `examples/single-file-html.mjs` generates a standalone HTML file with an embedded payload block and inline runtime that reads text and image chunks from disk.
+
 ### 14.4 Interactive Document Example
 
 Demonstrates text, JSON, image, and binary resources.
@@ -1634,6 +1648,10 @@ Demonstrates text, JSON, image, and binary resources.
 Acceptance criteria:
 
 - Shows the library is not image-specific.
+
+Progress:
+
+- Complete. `examples/interactive-document.mjs` demonstrates text, JSON, image, and arbitrary binary chunks in one generic document payload.
 
 ## Stage 15: MVP WASM Reader and Validator
 

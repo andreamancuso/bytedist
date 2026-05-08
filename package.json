@@ -52,7 +52,12 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "example:basic": "npm run build && node examples/basic.mjs",
+    "example:browser-gallery": "npm run build && node examples/browser-gallery.mjs",
+    "example:single-file-html": "npm run build && node examples/single-file-html.mjs",
+    "example:interactive-document": "npm run build && node examples/interactive-document.mjs",
+    "example:all": "npm run build && node examples/basic.mjs && node examples/browser-gallery.mjs && node examples/single-file-html.mjs && node examples/interactive-document.mjs"
   },
   "keywords": [
     "binary",

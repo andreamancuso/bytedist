@@ -121,6 +121,21 @@ const archive = await openEmbeddedPayload();
 A minimal no-bundler single-file example lives in
 [`examples/single-file-html/`](examples/single-file-html/).
 
+## Examples
+
+Runnable examples are repo-only and generate output under `examples/.generated/`:
+
+```sh
+npm run example:basic
+npm run example:browser-gallery
+npm run example:single-file-html
+npm run example:interactive-document
+npm run example:all
+```
+
+The examples cover Node pack/read/verify, a browser file-input gallery, generated
+single-file HTML, and a mixed-resource interactive document payload.
+
 ## Compression
 
 Compression is adapter-based and opt-in. The built-in codec is `none`; gzip,
