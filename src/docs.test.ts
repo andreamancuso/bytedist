@@ -9,6 +9,8 @@ describe("public documentation", () => {
     expect(readme).toContain("bytedist pack");
     expect(readme).toContain("bytedist inspect");
     expect(readme).toContain("bytedist verify");
+    expect(readme).toContain("bytedist sign");
+    expect(readme).toContain("bytedist verify-signature");
     expect(readme).toContain("bytedist bundle-html");
     expect(readme).toContain("createPayload");
     expect(readme).toContain("openPayload");
@@ -23,6 +25,7 @@ describe("public documentation", () => {
     expect(readme).toContain("must not be used to hide secrets");
     expect(readme).toContain("Experimental WASM reader/validator wrapper");
     expect(readme).toContain("Browser loading notes");
+    expect(readme).toContain("Signing and provenance notes");
 
     for (const comparison of ["ZIP", "Emscripten", "Vite", "Web Bundles", "glTF/GLB"]) {
       expect(readme).toContain(comparison);
@@ -55,7 +58,19 @@ describe("public documentation", () => {
     expect(formatDoc).toContain('tocEncoding: "json"');
     expect(formatDoc).toContain("npm run toc:measure");
     expect(formatDoc).toContain("JSON remains the only supported v0 TOC encoding");
+    expect(formatDoc).toContain("Detached Signatures");
     expect(formatDoc).toContain("pre-1.0");
+  });
+
+  it("documents payload signing behavior", async () => {
+    const signingDoc = await fs.readFile(new URL("../docs/signing.md", import.meta.url), "utf8");
+
+    expect(signingDoc).toContain("detached");
+    expect(signingDoc).toContain("ECDSA-P256-SHA256");
+    expect(signingDoc).toContain("bytedist sign");
+    expect(signingDoc).toContain("bytedist verify-signature");
+    expect(signingDoc).toContain("private keys");
+    expect(signingDoc).toContain("not DRM");
   });
 
   it("documents the experimental WASM reader surface", async () => {

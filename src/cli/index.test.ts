@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import { generateKeyPairSync } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 
@@ -25,6 +26,8 @@ describe("bytedist CLI", () => {
     expect(result.stdout.join("\n")).toContain("pack");
     expect(result.stdout.join("\n")).toContain("inspect");
     expect(result.stdout.join("\n")).toContain("verify");
+    expect(result.stdout.join("\n")).toContain("sign");
+    expect(result.stdout.join("\n")).toContain("verify-signature");
     expect(result.stdout.join("\n")).toContain("bundle-html");
     expect(result.stdout.join("\n")).not.toContain("extract");
   });
@@ -161,6 +164,126 @@ describe("bytedist CLI", () => {
 
     expect(result.code).toBe(1);
     expect(result.stderr.join("\n")).toContain("Verification failed");
+  });
+
+  it("signs and verifies a payload with a detached signature envelope", async () => {
+    const root = await createTempDir();
+    const payloadPath = path.join(root, "demo.bytedist");
+    const signaturePath = path.join(root, "demo.bytedist.sig.json");
+    const keys = createSigningKeys();
+    await fs.writeFile(payloadPath, await createCliPayload());
+    await fs.writeFile(path.join(root, "private.pem"), keys.privateKeyPem);
+    await fs.writeFile(path.join(root, "public.pem"), keys.publicKeyPem);
+
+    const signResult = await run([
+      "sign",
+      payloadPath,
+      "--key",
+      path.join(root, "private.pem"),
+      "--out",
+      signaturePath
+    ]);
+
+    expect(signResult.code).toBe(0);
+    expect(signResult.stdout.join("\n")).toContain("Signed ByteDist payload");
+    await expect(fs.readFile(signaturePath, "utf8")).resolves.toContain(
+      '"algorithm":"ECDSA-P256-SHA256"'
+    );
+
+    const verifyResult = await run([
+      "verify-signature",
+      payloadPath,
+      "--key",
+      path.join(root, "public.pem"),
+      "--signature",
+      signaturePath
+    ]);
+
+    expect(verifyResult.code).toBe(0);
+    expect(verifyResult.stdout.join("\n")).toContain("Signature verification passed");
+  });
+
+  it("requires --force before overwriting signature output", async () => {
+    const root = await createTempDir();
+    const payloadPath = path.join(root, "demo.bytedist");
+    const signaturePath = path.join(root, "demo.bytedist.sig.json");
+    const keys = createSigningKeys();
+    await fs.writeFile(payloadPath, await createCliPayload());
+    await fs.writeFile(path.join(root, "private.pem"), keys.privateKeyPem);
+
+    expect(
+      (
+        await run([
+          "sign",
+          payloadPath,
+          "--key",
+          path.join(root, "private.pem"),
+          "--out",
+          signaturePath
+        ])
+      ).code
+    ).toBe(0);
+
+    const withoutForce = await run([
+      "sign",
+      payloadPath,
+      "--key",
+      path.join(root, "private.pem"),
+      "--out",
+      signaturePath
+    ]);
+
+    expect(withoutForce.code).toBe(1);
+    expect(withoutForce.stderr.join("\n")).toContain("already exists");
+
+    expect(
+      (
+        await run([
+          "sign",
+          payloadPath,
+          "--key",
+          path.join(root, "private.pem"),
+          "--out",
+          signaturePath,
+          "--force"
+        ])
+      ).code
+    ).toBe(0);
+  });
+
+  it("reports signature verification failures", async () => {
+    const root = await createTempDir();
+    const payloadPath = path.join(root, "demo.bytedist");
+    const signaturePath = path.join(root, "demo.bytedist.sig.json");
+    const keys = createSigningKeys();
+    const wrongKeys = createSigningKeys();
+    await fs.writeFile(payloadPath, await createCliPayload());
+    await fs.writeFile(path.join(root, "private.pem"), keys.privateKeyPem);
+    await fs.writeFile(path.join(root, "wrong-public.pem"), wrongKeys.publicKeyPem);
+    expect(
+      (
+        await run([
+          "sign",
+          payloadPath,
+          "--key",
+          path.join(root, "private.pem"),
+          "--out",
+          signaturePath
+        ])
+      ).code
+    ).toBe(0);
+
+    const result = await run([
+      "verify-signature",
+      payloadPath,
+      "--key",
+      path.join(root, "wrong-public.pem"),
+      "--signature",
+      signaturePath
+    ]);
+
+    expect(result.code).toBe(1);
+    expect(result.stderr.join("\n")).toContain("Signature verification failed");
   });
 
   it("bundles an HTML template with an embedded payload", async () => {
@@ -367,6 +490,28 @@ async function createTempDir(): Promise<string> {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "bytedist-cli-"));
   tempRoots.push(root);
   return root;
+}
+
+function createSigningKeys(): {
+  readonly privateKeyPem: string;
+  readonly publicKeyPem: string;
+} {
+  const { privateKey, publicKey } = generateKeyPairSync("ec", {
+    namedCurve: "P-256",
+    privateKeyEncoding: {
+      type: "pkcs8",
+      format: "pem"
+    },
+    publicKeyEncoding: {
+      type: "spki",
+      format: "pem"
+    }
+  });
+
+  return {
+    privateKeyPem: privateKey,
+    publicKeyPem: publicKey
+  };
 }
 
 async function writeFixture(root: string, relativePath: string, contents: string): Promise<void> {

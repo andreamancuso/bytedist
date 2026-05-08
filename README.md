@@ -16,8 +16,10 @@ blobs make an export harder to ship, inspect, or maintain.
 - Reads payloads through TypeScript APIs in Node.js and browsers.
 - Supports HTTP range loading for hosted external payloads.
 - Verifies per-chunk SHA-256 metadata and TOC CRC32 corruption checks.
+- Signs and verifies detached provenance envelopes with public-key signatures.
 - Packs directories and writes payload files through `bytedist/node`.
-- Provides CLI commands for `pack`, `inspect`, `verify`, and `bundle-html`.
+- Provides CLI commands for `pack`, `inspect`, `verify`, `sign`,
+  `verify-signature`, and `bundle-html`.
 - Embeds payload bytes into non-executable single-file HTML data blocks.
 - Creates browser `Blob` and object URL resources from payload chunks.
 - Supports opt-in compression codec adapters.
@@ -36,6 +38,13 @@ npm run build
 npx bytedist pack ./artifact --manifest manifest.json --out artifact.bytedist
 npx bytedist inspect artifact.bytedist
 npx bytedist verify artifact.bytedist
+```
+
+Sign and verify a detached provenance envelope:
+
+```sh
+npx bytedist sign artifact.bytedist --key private.pem --out artifact.bytedist.sig.json
+npx bytedist verify-signature artifact.bytedist --key public.pem --signature artifact.bytedist.sig.json
 ```
 
 Bundle an existing payload into one HTML file:
@@ -129,6 +138,15 @@ const html = embedPayloadInHtml(templateHtml, payloadBytes);
 const archive = await openEmbeddedPayload();
 ```
 
+Sign and verify a detached provenance envelope:
+
+```ts
+import { signPayload, verifyPayloadSignature } from "bytedist";
+
+const envelope = await signPayload(payloadBytes, privateKeyPem);
+await verifyPayloadSignature(payloadBytes, envelope, publicKeyPem);
+```
+
 A minimal no-bundler single-file example lives in
 [`examples/single-file-html/`](examples/single-file-html/).
 
@@ -217,9 +235,11 @@ Available today:
 - Single-file HTML payload embedding helpers.
 - HTTP range loading for external browser payloads.
 - CLI commands for `pack`, `inspect`, `verify`, and `bundle-html`.
+- Detached payload signing and signature verification.
 - Adapter-based compression plumbing.
 - Format documentation in [`docs/format.md`](docs/format.md).
 - Browser loading notes in [`docs/browser.md`](docs/browser.md).
+- Signing and provenance notes in [`docs/signing.md`](docs/signing.md).
 - Experimental WASM reader/validator wrapper in `bytedist/wasm`.
 - WASM runtime notes in [`docs/wasm.md`](docs/wasm.md).
 

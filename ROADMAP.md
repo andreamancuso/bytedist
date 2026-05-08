@@ -114,6 +114,12 @@ As of May 8, 2026, the repository has completed the framing and setup work plus 
   - the range reader fetches footer/header/TOC first and chunk bytes on demand;
   - embedded base64 payloads remain full-decode by design;
   - optional byte caching is documented and defaults to off.
+- Stage 19 signing and provenance is complete:
+  - detached JSON signature envelopes keep v0 payload files unchanged;
+  - signatures use WebCrypto-compatible ECDSA P-256 with SHA-256;
+  - provenance covers format version, payload length, TOC location and hashes, payload metadata, and SHA-256 chunk hashes;
+  - `bytedist sign` and `bytedist verify-signature` support private build-time signing and public-key verification;
+  - `docs/signing.md` documents the trust model and no-secrets limits.
 
 Built-in compression codecs, WASM compression parity, and broader compatibility notes are still future work.
 
@@ -1941,6 +1947,8 @@ Progress:
 
 ## Stage 19: Signing and Provenance
 
+Status: Complete for detached payload signatures and provenance verification. Embedded signatures remain deferred to avoid changing the v0 footer-last payload layout.
+
 ### 19.1 Define Signing Model
 
 Do not invent crypto. Define what is signed:
@@ -1956,6 +1964,10 @@ Acceptance criteria:
 - Signing model document exists.
 - Threat model is clear.
 
+Progress:
+
+- Complete. `docs/signing.md` defines the detached signing model, the signed provenance fields, the ECDSA P-256/SHA-256 algorithm choice, and the trust model. Public docs state that signatures are provenance checks, not DRM, encryption, access control, or a way to hide secrets.
+
 ### 19.2 Add Public-Key Signature Support
 
 Use standard Web Crypto-compatible algorithms where possible.
@@ -1966,19 +1978,27 @@ Acceptance criteria:
 - Browser/Node can verify signatures.
 - Private keys are never embedded in browser exports by library design.
 
+Progress:
+
+- Complete. The public TypeScript API exports `signPayload`, `verifyPayloadSignature`, `createPayloadSignatureProvenance`, `parseSignatureEnvelope`, and `stringifySignatureEnvelope`. Signing requires SHA-256 chunk integrity metadata and verifies payload integrity before producing an envelope. Verification validates the public-key signature and recomputes payload provenance. Runtime/browser verification uses public keys only.
+
 ### 19.3 Add Signature CLI
 
 Commands:
 
 ```sh
-bytedist sign demo.bytedist --key private.pem --out demo.signed.bytedist
-bytedist verify-signature demo.signed.bytedist --key public.pem
+bytedist sign demo.bytedist --key private.pem --out demo.bytedist.sig.json
+bytedist verify-signature demo.bytedist --key public.pem --signature demo.bytedist.sig.json
 ```
 
 Acceptance criteria:
 
 - Clear errors for missing/invalid signatures.
 - Docs explain trust model.
+
+Progress:
+
+- Complete. The CLI writes detached signature JSON files, requires `--force` before overwriting signature output, and exits nonzero for invalid signatures, wrong keys, tampered payloads, missing metadata, and malformed signature envelopes. Existing `bytedist verify` remains an integrity-only command.
 
 ## Stage 20: Vite Integration
 

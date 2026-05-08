@@ -3,7 +3,13 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { openPayload } from "../core/index.js";
+import {
+  openPayload,
+  parseSignatureEnvelope,
+  signPayload,
+  stringifySignatureEnvelope,
+  verifyPayloadSignature
+} from "../core/index.js";
 import type { OpenedPayload } from "../format/types.js";
 import { embedPayloadInHtml, embedWasmInHtml } from "../html/index.js";
 import { packDirectory, writePayloadFile } from "../node/index.js";
@@ -27,13 +33,17 @@ Usage:
   bytedist pack <input-dir> --out <file> [--manifest <path>] [--ignore <pattern> ...] [--force] [--no-integrity]
   bytedist inspect <payload-file>
   bytedist verify <payload-file>
+  bytedist sign <payload-file> --key <private.pem> --out <signature.json> [--force]
+  bytedist verify-signature <payload-file> --key <public.pem> --signature <signature.json>
   bytedist bundle-html --template <html> --payload <file> --out <html> [--runtime <js>] [--wasm <file>] [--force] [--minify]
 
 Commands:
-  pack         Pack a directory into a .bytedist payload
-  inspect      Print payload metadata and chunk records
-  verify       Verify payload integrity metadata
-  bundle-html  Embed a .bytedist payload into an HTML template
+  pack              Pack a directory into a .bytedist payload
+  inspect           Print payload metadata and chunk records
+  verify            Verify payload integrity metadata
+  sign              Write a detached payload signature envelope
+  verify-signature  Verify a detached payload signature envelope
+  bundle-html       Embed a .bytedist payload into an HTML template
 `;
 
 export async function runCli(
@@ -61,6 +71,14 @@ export async function runCli(
 
     if (command === "verify") {
       return await runVerify(rest, io);
+    }
+
+    if (command === "sign") {
+      return await runSign(rest, io);
+    }
+
+    if (command === "verify-signature") {
+      return await runVerifySignature(rest, io);
     }
 
     if (command === "bundle-html") {
@@ -225,6 +243,77 @@ async function runVerify(argv: readonly string[], io: CliIo): Promise<number> {
       io.stderr(`Chunk: ${chunkName}`);
     }
 
+    return 1;
+  }
+}
+
+async function runSign(argv: readonly string[], io: CliIo): Promise<number> {
+  const options = parseOptions(argv, {
+    valueOptions: new Set(["--key", "--out"]),
+    listOptions: new Set(),
+    flagOptions: new Set(["--force"])
+  });
+  const payloadPath = options.positionals[0];
+  const keyPath = options.values.get("--key");
+  const outputPath = options.values.get("--out");
+
+  if (
+    payloadPath === undefined ||
+    keyPath === undefined ||
+    outputPath === undefined ||
+    options.positionals.length > 1
+  ) {
+    throw new Error(
+      "Usage: bytedist sign <payload-file> --key <private.pem> --out <signature.json>"
+    );
+  }
+
+  const payloadBytes = await fs.readFile(payloadPath);
+  const privateKeyPem = await fs.readFile(keyPath, "utf8");
+  const envelope = await signPayload(payloadBytes, privateKeyPem);
+  await writeTextFile(outputPath, stringifySignatureEnvelope(envelope), {
+    overwrite: options.flags.has("--force")
+  });
+
+  io.stdout("Signed ByteDist payload");
+  io.stdout(`Payload: ${payloadPath}`);
+  io.stdout(`Signature: ${outputPath}`);
+  io.stdout(`Algorithm: ${envelope.algorithm}`);
+  io.stdout(`Chunks: ${envelope.provenance.chunks.length}`);
+
+  return 0;
+}
+
+async function runVerifySignature(argv: readonly string[], io: CliIo): Promise<number> {
+  const options = parseOptions(argv, {
+    valueOptions: new Set(["--key", "--signature"]),
+    listOptions: new Set(),
+    flagOptions: new Set()
+  });
+  const payloadPath = options.positionals[0];
+  const keyPath = options.values.get("--key");
+  const signaturePath = options.values.get("--signature");
+
+  if (
+    payloadPath === undefined ||
+    keyPath === undefined ||
+    signaturePath === undefined ||
+    options.positionals.length > 1
+  ) {
+    throw new Error(
+      "Usage: bytedist verify-signature <payload-file> --key <public.pem> --signature <signature.json>"
+    );
+  }
+
+  try {
+    const payloadBytes = await fs.readFile(payloadPath);
+    const publicKeyPem = await fs.readFile(keyPath, "utf8");
+    const envelope = parseSignatureEnvelope(await fs.readFile(signaturePath, "utf8"));
+    await verifyPayloadSignature(payloadBytes, envelope, publicKeyPem);
+    io.stdout(`Signature verification passed: ${payloadPath}`);
+    return 0;
+  } catch (error) {
+    io.stderr(`Signature verification failed: ${errorMessage(error)}`);
     return 1;
   }
 }

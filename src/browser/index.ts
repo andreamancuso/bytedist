@@ -42,6 +42,13 @@ import {
 } from "../format/validation.js";
 import { EMBEDDED_PAYLOAD_SELECTOR, EMBEDDED_WASM_SELECTOR, decodeBase64 } from "../html/index.js";
 
+export {
+  parseSignatureEnvelope,
+  verifyPayloadSignature,
+  type PayloadSignatureEnvelope,
+  type PayloadSignatureVerificationOptions
+} from "../core/signing.js";
+
 const textDecoder = new TextDecoder();
 
 export interface LoadPayloadFromUrlOptions extends OpenPayloadOptions {

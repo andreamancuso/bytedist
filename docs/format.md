@@ -187,6 +187,18 @@ decompress first and then compare the SHA-256 digest. Payloads without hash
 metadata are still readable, but `archive.verify()` reports missing integrity
 metadata.
 
+## Detached Signatures
+
+Payload signatures are detached JSON envelopes. Signing does not append bytes to
+the payload, rewrite the TOC, or change the footer-last v0 layout.
+
+The detached signature model covers canonical provenance derived from the
+payload: format version, payload length, TOC location and hashes, payload
+metadata, and chunk records with SHA-256 hashes. Hashless payloads are readable
+but cannot be signed.
+
+See [`signing.md`](signing.md) for the CLI, TypeScript API, and trust model.
+
 ## Compression
 
 The built-in compression codec is `none`.

@@ -16,6 +16,7 @@ import {
   PayloadIntegrityError,
   PayloadIntegrityMetadataMissingError,
   PayloadIntegrityMismatchError,
+  PayloadSignatureError,
   PayloadVersionError,
   assertFooterMagic,
   assertPayloadMagic,
@@ -113,6 +114,7 @@ describe("format errors", () => {
     [PayloadIntegrityError, "bad hash"],
     [PayloadIntegrityMetadataMissingError, "missing hash"],
     [PayloadIntegrityMismatchError, "mismatched hash"],
+    [PayloadSignatureError, "bad signature"],
     [PayloadCompressionError, "bad compression"],
     [PayloadEmbeddingError, "bad embedding"]
   ])("preserves message and error identity for %s", (ErrorClass, message) => {

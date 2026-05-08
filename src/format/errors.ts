@@ -37,6 +37,8 @@ export class PayloadIntegrityMetadataMissingError extends PayloadIntegrityError 
 
 export class PayloadIntegrityMismatchError extends PayloadIntegrityError {}
 
+export class PayloadSignatureError extends ByteDistError {}
+
 export class PayloadChunkNotFoundError extends ByteDistError {
   public readonly chunkName: string;
 
