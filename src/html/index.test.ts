@@ -6,8 +6,11 @@ import { PayloadEmbeddingError } from "../format/errors.js";
 import {
   EMBEDDED_PAYLOAD_MARKER,
   EMBEDDED_PAYLOAD_SCRIPT_TYPE,
+  EMBEDDED_WASM_MARKER,
+  EMBEDDED_WASM_SCRIPT_TYPE,
   decodeBase64,
   embedPayloadInHtml,
+  embedWasmInHtml,
   encodeBase64
 } from "./index.js";
 
@@ -81,6 +84,34 @@ describe("embedPayloadInHtml", () => {
 
     expect(html).toBe(
       `<script type="${EMBEDDED_PAYLOAD_SCRIPT_TYPE}" data-bytedist-payload>AQID</script>`
+    );
+  });
+});
+
+describe("embedWasmInHtml", () => {
+  it("injects a non-executable WASM script at the default marker", () => {
+    const html = embedWasmInHtml(`<main></main>${EMBEDDED_WASM_MARKER}`, new Uint8Array([0, 97]));
+
+    expect(html).toContain(`type="${EMBEDDED_WASM_SCRIPT_TYPE}"`);
+    expect(html).toContain("data-bytedist-wasm");
+    expect(html).toContain("AGE=");
+    expect(html).not.toContain(EMBEDDED_WASM_MARKER);
+  });
+
+  it("supports custom WASM markers and minified output", () => {
+    const html = embedWasmInHtml("[[wasm]]", new Uint8Array([0, 1, 2]), {
+      marker: "[[wasm]]",
+      minified: true
+    });
+
+    expect(html).toBe(
+      `<script type="${EMBEDDED_WASM_SCRIPT_TYPE}" data-bytedist-wasm>AAEC</script>`
+    );
+  });
+
+  it("fails clearly when the WASM marker is missing", () => {
+    expect(() => embedWasmInHtml("<body></body>", new Uint8Array([1]))).toThrow(
+      PayloadEmbeddingError
     );
   });
 });

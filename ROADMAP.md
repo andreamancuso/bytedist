@@ -29,7 +29,7 @@ HTML template + viewer JS + WASM decoder + .bytedist
 
 ## Current Progress
 
-As of May 8, 2026, the repository has completed the framing and setup work plus the first writer, reader, integrity, Node filesystem helper, CLI, browser loader, and single-file HTML embedding slices:
+As of May 8, 2026, the repository has completed the framing and setup work plus the first writer, reader, integrity, Node filesystem helper, CLI, browser loader, single-file HTML embedding, and HTML bundler slices:
 
 - Stage 0 project framing is complete in `README.md`, with generic product language, target audience, license, and explicit no-DRM/no-secrets language.
 - Stage 1 repository setup is complete with npm package metadata, TypeScript, Vitest, Prettier, declaration-emitting build, package dry-run support, and GitHub Actions CI.
@@ -76,8 +76,13 @@ As of May 8, 2026, the repository has completed the framing and setup work plus 
   - embedded payloads use non-executable `application/octet-stream+base64` script blocks;
   - `bytedist/browser` can read embedded payload bytes or open embedded archives;
   - `examples/single-file-html/` demonstrates a no-bundler embedded payload page.
+- Stage 10 HTML bundler CLI is complete:
+  - `bytedist bundle-html` embeds an existing `.bytedist` payload into an HTML template;
+  - optional runtime JS and WASM data blocks are supported through explicit input files and markers;
+  - the command prints size summaries and requires `--force` before overwriting output;
+  - embedded WASM bytes can be decoded by `bytedist/browser`.
 
-HTML bundler and WASM reader are still future work.
+The WASM reader is still future work.
 
 ## Important Product Language
 
@@ -1348,6 +1353,10 @@ Progress:
 
 ## Stage 10: HTML Bundler CLI
 
+Status: Complete.
+
+Implemented in `src/cli/index.ts`, `src/html/index.ts`, and `src/browser/index.ts`.
+
 ### 10.1 `bundle-html` Command
 
 Implement:
@@ -1365,6 +1374,10 @@ Acceptance criteria:
 - Embedded payload can be read by browser runtime.
 - CLI prints original and final size.
 
+Progress:
+
+- Complete. `bundle-html` embeds an existing payload into a template, writes one HTML file, supports marker overrides, prints a size summary, and follows the existing `--force` overwrite policy.
+
 ### 10.2 Runtime JS Injection
 
 Optionally allow injecting small runtime JS.
@@ -1373,6 +1386,10 @@ Acceptance criteria:
 
 - Template marker can receive runtime script.
 - User can disable injection.
+
+Progress:
+
+- Complete. Runtime injection is opt-in via `--runtime`; without that option no runtime script is inserted.
 
 ### 10.3 WASM Embedding Placeholder
 
@@ -1383,6 +1400,10 @@ Acceptance criteria:
 - CLI accepts `--wasm viewer.wasm`.
 - HTML includes a separate WASM script tag or data block.
 - Browser helper can decode embedded WASM bytes.
+
+Progress:
+
+- Complete. `--wasm` embeds bytes as a separate non-executable `application/wasm+base64` data block, and `readEmbeddedWasm` decodes it in browser workflows.
 
 ### 10.4 Hardened HTML Profile
 
@@ -1395,6 +1416,10 @@ Acceptance criteria:
 - Public manifest is minimized.
 - Runtime uses the embedded WASM reader when available.
 - Generated HTML does not contain obvious `data:image/` or `data:audio/` media blobs.
+
+Progress:
+
+- Partial. Stage 10 documents and supports the HTML packaging mechanics: payload and WASM bytes are non-executable data blocks, and tests guard against obvious media data URLs. Opaque IDs and minimized manifests remain caller responsibilities until the hardened profile stage. WASM reader usage remains future work.
 
 ## Stage 11: Compression v1
 

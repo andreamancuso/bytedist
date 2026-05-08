@@ -10,6 +10,7 @@ import {
   loadPayloadFromUrl,
   openEmbeddedPayload,
   readEmbeddedPayload,
+  readEmbeddedWasm,
   readChunkAsBlob
 } from "./index.js";
 import { encodeBase64 } from "../html/index.js";
@@ -109,6 +110,16 @@ describe("browser payload helpers", () => {
     };
 
     expect(() => readEmbeddedPayload({ document })).toThrow(PayloadEmbeddingError);
+  });
+
+  it("reads embedded WASM bytes from the default selector", () => {
+    const wasmBytes = new Uint8Array([0, 97, 115, 109]);
+    const document = createDocumentStub(encodeBase64(wasmBytes));
+
+    expect(readEmbeddedWasm({ document })).toEqual(wasmBytes);
+    expect(document.querySelector).toHaveBeenCalledWith(
+      'script[type="application/wasm+base64"][data-bytedist-wasm]'
+    );
   });
 
   it("creates blobs from chunks using TOC MIME metadata", async () => {

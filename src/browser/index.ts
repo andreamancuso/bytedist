@@ -1,7 +1,7 @@
 import { openPayload } from "../core/index.js";
 import { PayloadEmbeddingError, PayloadLoadError } from "../format/errors.js";
 import type { OpenedPayload } from "../format/types.js";
-import { EMBEDDED_PAYLOAD_SELECTOR, decodeBase64 } from "../html/index.js";
+import { EMBEDDED_PAYLOAD_SELECTOR, EMBEDDED_WASM_SELECTOR, decodeBase64 } from "../html/index.js";
 
 export interface LoadPayloadFromUrlOptions {
   readonly fetch?: typeof fetch;
@@ -23,6 +23,11 @@ export interface CreateChunkObjectUrlOptions extends ReadChunkAsBlobOptions {
 }
 
 export interface ReadEmbeddedPayloadOptions {
+  readonly selector?: string;
+  readonly document?: Pick<Document, "querySelector">;
+}
+
+export interface ReadEmbeddedWasmOptions {
   readonly selector?: string;
   readonly document?: Pick<Document, "querySelector">;
 }
@@ -76,17 +81,38 @@ export async function loadPayloadFromFile(file: File): Promise<OpenedPayload> {
 }
 
 export function readEmbeddedPayload(options: ReadEmbeddedPayloadOptions = {}): Uint8Array {
+  return readEmbeddedBytes({
+    selector: options.selector ?? EMBEDDED_PAYLOAD_SELECTOR,
+    document: options.document,
+    label: "payload"
+  });
+}
+
+export function readEmbeddedWasm(options: ReadEmbeddedWasmOptions = {}): Uint8Array {
+  return readEmbeddedBytes({
+    selector: options.selector ?? EMBEDDED_WASM_SELECTOR,
+    document: options.document,
+    label: "WASM"
+  });
+}
+
+function readEmbeddedBytes(options: {
+  readonly selector: string;
+  readonly document: Pick<Document, "querySelector"> | undefined;
+  readonly label: string;
+}): Uint8Array {
   const documentRef = options.document ?? globalThis.document;
 
   if (documentRef === undefined) {
     throw new PayloadEmbeddingError("Document is unavailable in this runtime.");
   }
 
-  const selector = options.selector ?? EMBEDDED_PAYLOAD_SELECTOR;
-  const element = documentRef.querySelector(selector);
+  const element = documentRef.querySelector(options.selector);
 
   if (element === null) {
-    throw new PayloadEmbeddingError(`Embedded ByteDist payload element not found: ${selector}`);
+    throw new PayloadEmbeddingError(
+      `Embedded ByteDist ${options.label} element not found: ${options.selector}`
+    );
   }
 
   return decodeBase64(element.textContent ?? "");

@@ -21,8 +21,8 @@ The project is intended to provide:
 
 This repository is at the early MVP stage. It exports the initial payload
 format, in-memory writer and reader APIs, Node filesystem helpers, CLI commands,
-browser loading helpers, and single-file HTML embedding helpers. The HTML
-bundler CLI and WASM reader are planned next.
+browser loading helpers, single-file HTML embedding helpers, and an HTML bundler
+CLI. The WASM reader is planned next.
 
 ## Project Brief
 
@@ -65,7 +65,7 @@ it must not be used to hide secrets.
 
 ## Status
 
-Current milestone: single-file HTML embedding.
+Current milestone: HTML bundler CLI.
 
 Available today:
 
@@ -87,7 +87,7 @@ Available today:
 - `archive.verify()` for SHA-256 chunk integrity verification;
 - footer CRC32 for TOC corruption detection.
 - `bytedist/node` helpers for packing directories and writing payload files.
-- `bytedist` CLI commands for `pack`, `inspect`, and `verify`.
+- `bytedist` CLI commands for `pack`, `inspect`, `verify`, and `bundle-html`.
 - `bytedist/browser` helpers for URL, Blob, File, and object URL loading.
 - `bytedist/html` helpers for base64 payload blocks and HTML template injection.
 
@@ -97,6 +97,7 @@ CLI:
 bytedist pack ./artifact --manifest manifest.json --out artifact.bytedist
 bytedist inspect artifact.bytedist
 bytedist verify artifact.bytedist
+bytedist bundle-html --template index.html --payload artifact.bytedist --out artifact.html
 ```
 
 The first CLI intentionally does not expose an `extract` command. Public
@@ -149,6 +150,13 @@ const hostedArchive = await loadPayloadFromUrl("artifact.bytedist");
 ```
 
 A minimal no-bundler example lives in `examples/single-file-html/`.
+
+`bundle-html` embeds payload bytes at `<!-- BYTEDIST_PAYLOAD -->`. Optional
+runtime and WASM inputs use `<!-- BYTEDIST_RUNTIME -->` and
+`<!-- BYTEDIST_WASM -->`. The payload and WASM blocks are non-executable base64
+data blocks; caller-provided runtime JavaScript is executable by design. The
+command embeds an existing `.bytedist` file; use `pack` first when starting from
+a directory.
 
 Planned next slices are described in `ROADMAP.md`.
 

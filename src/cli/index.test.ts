@@ -5,7 +5,8 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { PAYLOAD_HEADER_LENGTH } from "../index.js";
-import { openPayload } from "../core/index.js";
+import { createPayload, openPayload } from "../core/index.js";
+import { openEmbeddedPayload, readEmbeddedWasm } from "../browser/index.js";
 import { runCli } from "./index.js";
 
 const tempRoots: string[] = [];
@@ -24,6 +25,7 @@ describe("bytedist CLI", () => {
     expect(result.stdout.join("\n")).toContain("pack");
     expect(result.stdout.join("\n")).toContain("inspect");
     expect(result.stdout.join("\n")).toContain("verify");
+    expect(result.stdout.join("\n")).toContain("bundle-html");
     expect(result.stdout.join("\n")).not.toContain("extract");
   });
 
@@ -160,6 +162,190 @@ describe("bytedist CLI", () => {
     expect(result.code).toBe(1);
     expect(result.stderr.join("\n")).toContain("Verification failed");
   });
+
+  it("bundles an HTML template with an embedded payload", async () => {
+    const root = await createTempDir();
+    const templatePath = path.join(root, "template.html");
+    const payloadPath = path.join(root, "demo.bytedist");
+    const outputPath = path.join(root, "demo.html");
+    await fs.writeFile(templatePath, "<html><body><!-- BYTEDIST_PAYLOAD --></body></html>");
+    await fs.writeFile(payloadPath, await createCliPayload());
+
+    const result = await run([
+      "bundle-html",
+      "--template",
+      templatePath,
+      "--payload",
+      payloadPath,
+      "--out",
+      outputPath
+    ]);
+
+    expect(result.code).toBe(0);
+    expect(result.stdout.join("\n")).toContain("Bundled ByteDist HTML");
+    expect(result.stdout.join("\n")).toContain("Template size:");
+    expect(result.stdout.join("\n")).toContain("Payload size:");
+    expect(result.stdout.join("\n")).toContain("Output size:");
+
+    const html = await fs.readFile(outputPath, "utf8");
+    const document = createDocumentStub(readDataBlock(html, "data-bytedist-payload"));
+    const archive = await openEmbeddedPayload({ document });
+    await expect(archive.readText("a.txt")).resolves.toBe("hello");
+  });
+
+  it("requires --force before overwriting bundled HTML output", async () => {
+    const root = await createTempDir();
+    const templatePath = path.join(root, "template.html");
+    const payloadPath = path.join(root, "demo.bytedist");
+    const outputPath = path.join(root, "demo.html");
+    await fs.writeFile(templatePath, "<html><!-- BYTEDIST_PAYLOAD --></html>");
+    await fs.writeFile(payloadPath, await createCliPayload());
+
+    expect(
+      (
+        await run([
+          "bundle-html",
+          "--template",
+          templatePath,
+          "--payload",
+          payloadPath,
+          "--out",
+          outputPath
+        ])
+      ).code
+    ).toBe(0);
+
+    const withoutForce = await run([
+      "bundle-html",
+      "--template",
+      templatePath,
+      "--payload",
+      payloadPath,
+      "--out",
+      outputPath
+    ]);
+    expect(withoutForce.code).toBe(1);
+    expect(withoutForce.stderr.join("\n")).toContain("already exists");
+
+    expect(
+      (
+        await run([
+          "bundle-html",
+          "--template",
+          templatePath,
+          "--payload",
+          payloadPath,
+          "--out",
+          outputPath,
+          "--force"
+        ])
+      ).code
+    ).toBe(0);
+  });
+
+  it("fails bundle-html clearly when the payload marker is missing", async () => {
+    const root = await createTempDir();
+    const templatePath = path.join(root, "template.html");
+    const payloadPath = path.join(root, "demo.bytedist");
+    await fs.writeFile(templatePath, "<html></html>");
+    await fs.writeFile(payloadPath, await createCliPayload());
+
+    const result = await run([
+      "bundle-html",
+      "--template",
+      templatePath,
+      "--payload",
+      payloadPath,
+      "--out",
+      path.join(root, "demo.html")
+    ]);
+
+    expect(result.code).toBe(1);
+    expect(result.stderr.join("\n")).toContain("payload marker");
+  });
+
+  it("injects optional runtime JS and WASM data blocks", async () => {
+    const root = await createTempDir();
+    const templatePath = path.join(root, "template.html");
+    const payloadPath = path.join(root, "demo.bytedist");
+    const runtimePath = path.join(root, "runtime.js");
+    const wasmPath = path.join(root, "viewer.wasm");
+    const outputPath = path.join(root, "demo.html");
+    await fs.writeFile(
+      templatePath,
+      "<html><!-- BYTEDIST_PAYLOAD --><!-- BYTEDIST_RUNTIME --><!-- BYTEDIST_WASM --></html>"
+    );
+    await fs.writeFile(payloadPath, await createCliPayload());
+    await fs.writeFile(runtimePath, "window.__bytedistDemo = '</script-safe';");
+    await fs.writeFile(wasmPath, new Uint8Array([0, 97, 115, 109]));
+
+    const result = await run([
+      "bundle-html",
+      "--template",
+      templatePath,
+      "--payload",
+      payloadPath,
+      "--runtime",
+      runtimePath,
+      "--wasm",
+      wasmPath,
+      "--out",
+      outputPath,
+      "--minify"
+    ]);
+
+    const html = await fs.readFile(outputPath, "utf8");
+    const wasmDocument = createDocumentStub(readDataBlock(html, "data-bytedist-wasm"));
+
+    expect(result.code).toBe(0);
+    expect(result.stdout.join("\n")).toContain("Runtime size:");
+    expect(result.stdout.join("\n")).toContain("WASM size:");
+    expect(html).toContain("<\\/script-safe");
+    expect(html).toContain('type="application/wasm+base64"');
+    expect(readEmbeddedWasm({ document: wasmDocument })).toEqual(new Uint8Array([0, 97, 115, 109]));
+    expect(html).not.toContain("data:image/");
+    expect(html).not.toContain("data:audio/");
+  });
+
+  it("fails bundle-html when requested runtime or WASM markers are missing", async () => {
+    const root = await createTempDir();
+    const templatePath = path.join(root, "template.html");
+    const payloadPath = path.join(root, "demo.bytedist");
+    const runtimePath = path.join(root, "runtime.js");
+    const wasmPath = path.join(root, "viewer.wasm");
+    await fs.writeFile(templatePath, "<html><!-- BYTEDIST_PAYLOAD --></html>");
+    await fs.writeFile(payloadPath, await createCliPayload());
+    await fs.writeFile(runtimePath, "console.log('runtime');");
+    await fs.writeFile(wasmPath, new Uint8Array([0, 97, 115, 109]));
+
+    const runtimeResult = await run([
+      "bundle-html",
+      "--template",
+      templatePath,
+      "--payload",
+      payloadPath,
+      "--runtime",
+      runtimePath,
+      "--out",
+      path.join(root, "runtime.html")
+    ]);
+    expect(runtimeResult.code).toBe(1);
+    expect(runtimeResult.stderr.join("\n")).toContain("runtime marker");
+
+    const wasmResult = await run([
+      "bundle-html",
+      "--template",
+      templatePath,
+      "--payload",
+      payloadPath,
+      "--wasm",
+      wasmPath,
+      "--out",
+      path.join(root, "wasm.html")
+    ]);
+    expect(wasmResult.code).toBe(1);
+    expect(wasmResult.stderr.join("\n")).toContain("WASM marker");
+  });
 });
 
 async function run(argv: readonly string[]): Promise<{
@@ -187,4 +373,31 @@ async function writeFixture(root: string, relativePath: string, contents: string
   const absolutePath = path.join(root, relativePath);
   await fs.mkdir(path.dirname(absolutePath), { recursive: true });
   await fs.writeFile(absolutePath, contents);
+}
+
+async function createCliPayload(): Promise<Uint8Array> {
+  return createPayload({
+    integrity: "sha256",
+    files: [
+      {
+        name: "a.txt",
+        bytes: new TextEncoder().encode("hello"),
+        mime: "text/plain",
+        encoding: "utf-8"
+      }
+    ]
+  });
+}
+
+function readDataBlock(html: string, attribute: string): string {
+  const pattern = new RegExp(`<script[^>]*${attribute}[^>]*>\\s*([\\s\\S]*?)\\s*<\\/script>`);
+  const match = html.match(pattern);
+  expect(match?.[1]).toBeDefined();
+  return match?.[1] ?? "";
+}
+
+function createDocumentStub(textContent: string): Pick<Document, "querySelector"> {
+  return {
+    querySelector: () => ({ textContent }) as Element
+  };
 }

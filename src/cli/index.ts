@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 import fs from "node:fs/promises";
+import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { openPayload } from "../core/index.js";
 import type { OpenedPayload } from "../format/types.js";
+import { embedPayloadInHtml, embedWasmInHtml } from "../html/index.js";
 import { packDirectory, writePayloadFile } from "../node/index.js";
 
 interface CliIo {
@@ -25,11 +27,13 @@ Usage:
   bytedist pack <input-dir> --out <file> [--manifest <path>] [--ignore <pattern> ...] [--force] [--no-integrity]
   bytedist inspect <payload-file>
   bytedist verify <payload-file>
+  bytedist bundle-html --template <html> --payload <file> --out <html> [--runtime <js>] [--wasm <file>] [--force] [--minify]
 
 Commands:
-  pack      Pack a directory into a .bytedist payload
-  inspect   Print payload metadata and chunk records
-  verify    Verify payload integrity metadata
+  pack         Pack a directory into a .bytedist payload
+  inspect      Print payload metadata and chunk records
+  verify       Verify payload integrity metadata
+  bundle-html  Embed a .bytedist payload into an HTML template
 `;
 
 export async function runCli(
@@ -59,6 +63,10 @@ export async function runCli(
       return await runVerify(rest, io);
     }
 
+    if (command === "bundle-html") {
+      return await runBundleHtml(rest, io);
+    }
+
     io.stderr(`Unknown command: ${command}`);
     io.stderr("Run `bytedist --help` for usage.");
     return 1;
@@ -66,6 +74,76 @@ export async function runCli(
     io.stderr(formatError(error));
     return 1;
   }
+}
+
+async function runBundleHtml(argv: readonly string[], io: CliIo): Promise<number> {
+  const options = parseOptions(argv, {
+    valueOptions: new Set([
+      "--template",
+      "--payload",
+      "--out",
+      "--runtime",
+      "--wasm",
+      "--payload-marker",
+      "--runtime-marker",
+      "--wasm-marker"
+    ]),
+    listOptions: new Set(),
+    flagOptions: new Set(["--force", "--minify"])
+  });
+  const templatePath = options.values.get("--template");
+  const payloadPath = options.values.get("--payload");
+  const outputPath = options.values.get("--out");
+  const runtimePath = options.values.get("--runtime");
+  const wasmPath = options.values.get("--wasm");
+
+  if (
+    templatePath === undefined ||
+    payloadPath === undefined ||
+    outputPath === undefined ||
+    options.positionals.length > 0
+  ) {
+    throw new Error("Usage: bytedist bundle-html --template <html> --payload <file> --out <html>");
+  }
+
+  const templateHtml = await fs.readFile(templatePath, "utf8");
+  const payloadBytes = await fs.readFile(payloadPath);
+  const runtimeJs = runtimePath === undefined ? undefined : await fs.readFile(runtimePath, "utf8");
+  const wasmBytes = wasmPath === undefined ? undefined : await fs.readFile(wasmPath);
+  const minified = options.flags.has("--minify");
+
+  let html = embedPayloadInHtml(templateHtml, payloadBytes, {
+    ...optionalMarker(options.values.get("--payload-marker")),
+    minified
+  });
+
+  if (runtimeJs !== undefined) {
+    html = injectRuntimeScript(html, runtimeJs, options.values.get("--runtime-marker"));
+  }
+
+  if (wasmBytes !== undefined) {
+    html = embedWasmInHtml(html, wasmBytes, {
+      ...optionalMarker(options.values.get("--wasm-marker")),
+      minified
+    });
+  }
+
+  const outputBytes = textEncoder.encode(html);
+  await writeTextFile(outputPath, html, { overwrite: options.flags.has("--force") });
+
+  io.stdout("Bundled ByteDist HTML");
+  io.stdout(`Template: ${templatePath}`);
+  io.stdout(`Payload: ${payloadPath}`);
+  io.stdout(`Output: ${outputPath}`);
+  io.stdout(`Template size: ${textEncoder.encode(templateHtml).byteLength} bytes`);
+  io.stdout(`Payload size: ${payloadBytes.byteLength} bytes`);
+  io.stdout(
+    `Runtime size: ${runtimeJs === undefined ? "none" : `${textEncoder.encode(runtimeJs).byteLength} bytes`}`
+  );
+  io.stdout(`WASM size: ${wasmBytes === undefined ? "none" : `${wasmBytes.byteLength} bytes`}`);
+  io.stdout(`Output size: ${outputBytes.byteLength} bytes`);
+
+  return 0;
 }
 
 async function runPack(argv: readonly string[], io: CliIo): Promise<number> {
@@ -243,6 +321,42 @@ function maybeChunkName(error: unknown): string | undefined {
 
   const chunkName = (error as { readonly chunkName?: unknown }).chunkName;
   return typeof chunkName === "string" ? chunkName : undefined;
+}
+
+const DEFAULT_RUNTIME_MARKER = "<!-- BYTEDIST_RUNTIME -->";
+
+const textEncoder = new TextEncoder();
+
+function injectRuntimeScript(
+  html: string,
+  runtimeJs: string,
+  marker = DEFAULT_RUNTIME_MARKER
+): string {
+  if (!html.includes(marker)) {
+    throw new Error(`HTML template does not contain ByteDist runtime marker: ${marker}`);
+  }
+
+  return html.replace(
+    marker,
+    `<script type="module">\n${escapeInlineScript(runtimeJs)}\n</script>`
+  );
+}
+
+function escapeInlineScript(runtimeJs: string): string {
+  return runtimeJs.replace(/<\/script/gi, "<\\/script");
+}
+
+function optionalMarker(marker: string | undefined): { readonly marker?: string } {
+  return marker === undefined ? {} : { marker };
+}
+
+async function writeTextFile(
+  outputPath: string,
+  contents: string,
+  options: { readonly overwrite: boolean }
+): Promise<void> {
+  await fs.mkdir(path.dirname(outputPath), { recursive: true });
+  await fs.writeFile(outputPath, contents, { flag: options.overwrite ? "w" : "wx" });
 }
 
 if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(process.argv[1]).href) {

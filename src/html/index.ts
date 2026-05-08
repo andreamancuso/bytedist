@@ -1,15 +1,24 @@
 import { PayloadEmbeddingError } from "../format/errors.js";
 
 export const EMBEDDED_PAYLOAD_MARKER = "<!-- BYTEDIST_PAYLOAD -->";
+export const EMBEDDED_WASM_MARKER = "<!-- BYTEDIST_WASM -->";
 export const EMBEDDED_PAYLOAD_SCRIPT_TYPE = "application/octet-stream+base64";
+export const EMBEDDED_WASM_SCRIPT_TYPE = "application/wasm+base64";
 export const EMBEDDED_PAYLOAD_SELECTOR =
   'script[type="application/octet-stream+base64"][data-bytedist-payload]';
+export const EMBEDDED_WASM_SELECTOR = 'script[type="application/wasm+base64"][data-bytedist-wasm]';
 
 export interface EncodeBase64Options {
   readonly lineLength?: number | false;
 }
 
 export interface EmbedPayloadInHtmlOptions {
+  readonly marker?: string;
+  readonly minified?: boolean;
+  readonly lineLength?: number;
+}
+
+export interface EmbedWasmInHtmlOptions {
   readonly marker?: string;
   readonly minified?: boolean;
   readonly lineLength?: number;
@@ -99,19 +108,58 @@ export function embedPayloadInHtml(
   payloadBytes: Uint8Array,
   options: EmbedPayloadInHtmlOptions = {}
 ): string {
-  const marker = options.marker ?? EMBEDDED_PAYLOAD_MARKER;
+  return embedBytesInHtml(templateHtml, payloadBytes, {
+    marker: options.marker ?? EMBEDDED_PAYLOAD_MARKER,
+    minified: options.minified,
+    lineLength: options.lineLength,
+    scriptType: EMBEDDED_PAYLOAD_SCRIPT_TYPE,
+    dataAttribute: "data-bytedist-payload",
+    label: "payload"
+  });
+}
+
+export function embedWasmInHtml(
+  templateHtml: string,
+  wasmBytes: Uint8Array,
+  options: EmbedWasmInHtmlOptions = {}
+): string {
+  return embedBytesInHtml(templateHtml, wasmBytes, {
+    marker: options.marker ?? EMBEDDED_WASM_MARKER,
+    minified: options.minified,
+    lineLength: options.lineLength,
+    scriptType: EMBEDDED_WASM_SCRIPT_TYPE,
+    dataAttribute: "data-bytedist-wasm",
+    label: "WASM"
+  });
+}
+
+function embedBytesInHtml(
+  templateHtml: string,
+  bytes: Uint8Array,
+  options: {
+    readonly marker: string;
+    readonly minified: boolean | undefined;
+    readonly lineLength: number | undefined;
+    readonly scriptType: string;
+    readonly dataAttribute: string;
+    readonly label: string;
+  }
+): string {
+  const marker = options.marker;
 
   if (!templateHtml.includes(marker)) {
-    throw new PayloadEmbeddingError(`HTML template does not contain ByteDist marker: ${marker}`);
+    throw new PayloadEmbeddingError(
+      `HTML template does not contain ByteDist ${options.label} marker: ${marker}`
+    );
   }
 
-  const base64 = encodeBase64(payloadBytes, {
+  const base64 = encodeBase64(bytes, {
     lineLength: options.minified === true ? false : (options.lineLength ?? 76)
   });
   const block =
     options.minified === true
-      ? `<script type="${EMBEDDED_PAYLOAD_SCRIPT_TYPE}" data-bytedist-payload>${base64}</script>`
-      : `<script type="${EMBEDDED_PAYLOAD_SCRIPT_TYPE}" data-bytedist-payload>\n${base64}\n</script>`;
+      ? `<script type="${options.scriptType}" ${options.dataAttribute}>${base64}</script>`
+      : `<script type="${options.scriptType}" ${options.dataAttribute}>\n${base64}\n</script>`;
 
   return templateHtml.replace(marker, block);
 }
