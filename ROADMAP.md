@@ -29,7 +29,7 @@ HTML template + viewer JS + WASM decoder + .bytedist
 
 ## Current Progress
 
-As of May 8, 2026, the repository has completed the framing and setup work plus the first writer and reader implementation slices:
+As of May 8, 2026, the repository has completed the framing and setup work plus the first writer, reader, and integrity implementation slices:
 
 - Stage 0 project framing is complete in `README.md`, with generic product language, target audience, license, and explicit no-DRM/no-secrets language.
 - Stage 1 repository setup is complete with npm package metadata, TypeScript, Vitest, Prettier, declaration-emitting build, package dry-run support, and GitHub Actions CI.
@@ -49,9 +49,13 @@ As of May 8, 2026, the repository has completed the framing and setup work plus 
   - `openPayload` validates header, footer, TOC shape, chunk names, chunk ranges, and unsupported compression;
   - archive objects expose `list`, `has`, `getToc`, `readBytes`, `readText`, `readJson`, and `close`;
   - `readBytes` returns defensive copies;
-  - `verify` throws a typed unsupported-feature error until Stage 5.
+  - `verify` is available through the Stage 5 integrity implementation.
+- Stage 5 integrity support is complete:
+  - `archive.verify()` checks SHA-256 chunk metadata and reports failing chunk names;
+  - hashless or partially hashless payloads remain readable but fail verification with a typed missing-metadata error;
+  - footer CRC32 detects TOC byte corruption and is documented as non-cryptographic corruption detection.
 
-The full integrity verification API, CLI commands, browser runtime, HTML bundler, and WASM reader are still future work.
+CLI commands, browser runtime, HTML bundler, and WASM reader are still future work.
 
 ## Important Product Language
 
@@ -918,6 +922,18 @@ Progress:
 
 ## Stage 5: Integrity Support
 
+Status: Complete.
+
+Implemented in:
+
+- `src/core/hash.ts`
+- `src/core/pack.ts`
+- `src/core/read.ts`
+- `src/core/layout.ts`
+- `src/core/read.test.ts`
+- `src/core/pack.test.ts`
+- `src/format/errors.ts`
+
 ### 5.1 Add SHA-256 Hashing
 
 Use Web Crypto in browser and Node crypto in Node, or use a small cross-runtime abstraction.
@@ -927,6 +943,10 @@ Acceptance criteria:
 - Writer can store SHA-256 per chunk.
 - Reader can verify per chunk.
 - Full payload verification works.
+
+Progress:
+
+- Complete. The writer stores SHA-256 per-chunk metadata when requested, and `archive.verify()` checks every hashed chunk. Hashing uses Web Crypto first with a dynamic Node crypto fallback.
 
 ### 5.2 Add `verify()`
 
@@ -938,6 +958,10 @@ Acceptance criteria:
 - Verification fails for modified chunk data.
 - Verification reports the failing chunk name.
 
+Progress:
+
+- Complete. Valid hashed payloads pass verification; modified chunk bytes throw `PayloadIntegrityMismatchError` with the failing chunk name.
+
 ### 5.3 Add Optional Hashless Mode
 
 Allow integrity checks to be disabled for minimal payloads.
@@ -947,6 +971,10 @@ Acceptance criteria:
 - Hashless payloads can be written and read.
 - `verify()` clearly reports that no integrity metadata exists or treats it as a no-op by design.
 
+Progress:
+
+- Complete. Hashless payloads can be written and read, and `verify()` throws `PayloadIntegrityMetadataMissingError`.
+
 ### 5.4 Add TOC Integrity
 
 Add hash/integrity for the TOC itself.
@@ -955,6 +983,10 @@ Acceptance criteria:
 
 - Corrupted TOC is detected where possible.
 - Tests modify TOC bytes and expect failure.
+
+Progress:
+
+- Complete. The footer checksum field stores CRC32 of the raw TOC bytes. This is documented as non-cryptographic corruption detection, not authenticity or secure integrity.
 
 ## Stage 6: Node Filesystem Helpers
 

@@ -27,6 +27,10 @@ Integrity checks can detect corruption or tampering only when the verifier and
 its execution environment are trusted. Integrity is not the same as access
 control.
 
+ByteDist's v0 footer CRC32 is a non-cryptographic corruption check for TOC bytes.
+It is not an authenticity check and does not prove that a payload came from a
+trusted publisher.
+
 If signing is added in a later release, signatures will prove provenance only
 under a clearly documented key and trust model.
 

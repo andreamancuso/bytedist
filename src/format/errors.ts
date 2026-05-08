@@ -21,7 +21,21 @@ export class PayloadVersionError extends ByteDistError {
   }
 }
 
-export class PayloadIntegrityError extends ByteDistError {}
+export class PayloadIntegrityError extends ByteDistError {
+  public readonly chunkName: string | undefined;
+
+  public constructor(
+    message: string,
+    options?: ByteDistErrorOptions & { readonly chunkName?: string }
+  ) {
+    super(message, options);
+    this.chunkName = options?.chunkName;
+  }
+}
+
+export class PayloadIntegrityMetadataMissingError extends PayloadIntegrityError {}
+
+export class PayloadIntegrityMismatchError extends PayloadIntegrityError {}
 
 export class PayloadChunkNotFoundError extends ByteDistError {
   public readonly chunkName: string;

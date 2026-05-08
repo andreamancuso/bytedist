@@ -1,19 +1,21 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  FOOTER_CHECKSUM_NONE,
   PAYLOAD_FOOTER_LENGTH,
   PAYLOAD_FORMAT_VERSION,
   PAYLOAD_HEADER_LENGTH,
   PayloadChunkNotFoundError,
   PayloadCompressionError,
   PayloadFormatError,
-  PayloadUnsupportedFeatureError,
+  PayloadIntegrityError,
+  PayloadIntegrityMetadataMissingError,
+  PayloadIntegrityMismatchError,
   PayloadVersionError,
   createPayload,
   openPayload,
   type PayloadToc
 } from "../index.js";
+import { crc32 } from "./hash.js";
 import { writePayloadFooter, writePayloadHeader } from "./layout.js";
 
 const textEncoder = new TextEncoder();
@@ -128,14 +130,72 @@ describe("openPayload", () => {
     await expect(archive.readJson("bad.json")).rejects.toThrow(PayloadFormatError);
   });
 
-  it("throws a typed unsupported-feature error from verify", async () => {
+  it("verifies hashed payloads", async () => {
+    const archive = await openPayload(
+      await createPayload({
+        files: [{ name: "asset.bin", bytes: new Uint8Array([1]) }],
+        integrity: "sha256"
+      })
+    );
+
+    await expect(archive.verify()).resolves.toBeUndefined();
+  });
+
+  it("throws a typed missing-metadata error from verify for hashless payloads", async () => {
     const archive = await openPayload(
       await createPayload({
         files: [{ name: "asset.bin", bytes: new Uint8Array([1]) }]
       })
     );
 
-    await expect(archive.verify()).rejects.toThrow(PayloadUnsupportedFeatureError);
+    await expect(archive.verify()).rejects.toThrow(PayloadIntegrityMetadataMissingError);
+  });
+
+  it("throws a typed missing-metadata error from verify for mixed hash metadata", async () => {
+    const payload = await createPayload({
+      files: [
+        { name: "hashed.bin", bytes: new Uint8Array([1]) },
+        { name: "hashless.bin", bytes: new Uint8Array([2]) }
+      ],
+      integrity: "sha256"
+    });
+    const toc = readToc(payload);
+    const rewrittenPayload = rewritePayloadToc(payload, {
+      ...toc,
+      chunks: toc.chunks.map((chunk) =>
+        chunk.name === "hashless.bin"
+          ? {
+              name: chunk.name,
+              offset: chunk.offset,
+              length: chunk.length,
+              storedLength: chunk.storedLength,
+              compression: chunk.compression
+            }
+          : chunk
+      )
+    });
+
+    const archive = await openPayload(rewrittenPayload);
+
+    await expect(archive.verify()).rejects.toMatchObject({
+      constructor: PayloadIntegrityMetadataMissingError,
+      chunkName: "hashless.bin"
+    });
+  });
+
+  it("reports the failing chunk name when chunk integrity fails", async () => {
+    const payload = await createPayload({
+      files: [{ name: "asset.bin", bytes: new Uint8Array([1]) }],
+      integrity: "sha256"
+    });
+    payload[PAYLOAD_HEADER_LENGTH] = 2;
+
+    const archive = await openPayload(payload);
+
+    await expect(archive.verify()).rejects.toMatchObject({
+      constructor: PayloadIntegrityMismatchError,
+      chunkName: "asset.bin"
+    });
   });
 
   it("rejects too-short payloads", async () => {
@@ -200,6 +260,24 @@ describe("openPayload", () => {
     await expect(openPayload(buildPayloadWithToc("{", new Uint8Array([1])))).rejects.toThrow(
       PayloadFormatError
     );
+  });
+
+  it("rejects TOC CRC32 mismatches as integrity failures", async () => {
+    const payload = buildPayloadWithToc(
+      {
+        version: 0,
+        tocEncoding: "json",
+        chunks: [chunkRecord("asset.bin", PAYLOAD_HEADER_LENGTH, 1)]
+      },
+      new Uint8Array([1])
+    );
+    const footerOffset = payload.byteLength - PAYLOAD_FOOTER_LENGTH;
+    const footer = dataView(payload, footerOffset, PAYLOAD_FOOTER_LENGTH);
+    const tocOffset = Number(footer.getBigUint64(12, true));
+
+    payload[tocOffset + 1] = payload[tocOffset + 1] === 48 ? 49 : 48;
+
+    await expect(openPayload(payload)).rejects.toThrow(PayloadIntegrityError);
   });
 
   it("rejects malformed TOC shape", async () => {
@@ -295,7 +373,8 @@ function buildPayloadWithToc(toc: unknown, chunkBytes: Uint8Array): Uint8Array {
   const footer = writePayloadFooter({
     tocOffset,
     tocLength: tocBytes.byteLength,
-    payloadLength
+    payloadLength,
+    footerChecksum: crc32(tocBytes)
   });
   const payload = new Uint8Array(payloadLength);
 
@@ -327,4 +406,52 @@ function writeU64(bytes: Uint8Array, byteOffset: number, value: number): void {
 
 function dataView(bytes: Uint8Array, byteOffset: number, byteLength: number): DataView {
   return new DataView(bytes.buffer, bytes.byteOffset + byteOffset, byteLength);
+}
+
+function readFooter(payload: Uint8Array): {
+  readonly tocOffset: number;
+  readonly tocLength: number;
+  readonly payloadLength: number;
+} {
+  const footer = dataView(
+    payload,
+    payload.byteLength - PAYLOAD_FOOTER_LENGTH,
+    PAYLOAD_FOOTER_LENGTH
+  );
+
+  return {
+    tocOffset: Number(footer.getBigUint64(12, true)),
+    tocLength: Number(footer.getBigUint64(20, true)),
+    payloadLength: Number(footer.getBigUint64(28, true))
+  };
+}
+
+function readToc(payload: Uint8Array): PayloadToc {
+  const footer = readFooter(payload);
+  return JSON.parse(
+    new TextDecoder().decode(payload.slice(footer.tocOffset, footer.tocOffset + footer.tocLength))
+  ) as PayloadToc;
+}
+
+function rewritePayloadToc(payload: Uint8Array, toc: PayloadToc): Uint8Array {
+  const footer = readFooter(payload);
+  const chunkBytes = payload.slice(PAYLOAD_HEADER_LENGTH, footer.tocOffset);
+  const tocBytes = textEncoder.encode(JSON.stringify(toc));
+  const payloadLength =
+    PAYLOAD_HEADER_LENGTH + chunkBytes.byteLength + tocBytes.byteLength + PAYLOAD_FOOTER_LENGTH;
+  const rewritten = new Uint8Array(payloadLength);
+  const newTocOffset = PAYLOAD_HEADER_LENGTH + chunkBytes.byteLength;
+  const newFooter = writePayloadFooter({
+    tocOffset: newTocOffset,
+    tocLength: tocBytes.byteLength,
+    payloadLength,
+    footerChecksum: crc32(tocBytes)
+  });
+
+  rewritten.set(writePayloadHeader(), 0);
+  rewritten.set(chunkBytes, PAYLOAD_HEADER_LENGTH);
+  rewritten.set(tocBytes, newTocOffset);
+  rewritten.set(newFooter, newTocOffset + tocBytes.byteLength);
+
+  return rewritten;
 }

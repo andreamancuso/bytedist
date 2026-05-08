@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  FOOTER_CHECKSUM_NONE,
   FOOTER_MAGIC_BYTES,
   PAYLOAD_FLAGS_NONE,
   PAYLOAD_FOOTER_LENGTH,
@@ -14,6 +13,7 @@ import {
   isFooterMagic,
   type PayloadToc
 } from "../index.js";
+import { crc32 } from "./hash.js";
 
 const textDecoder = new TextDecoder();
 
@@ -44,7 +44,7 @@ describe("createPayload", () => {
     const footer = dataView(payload, footerOffset, PAYLOAD_FOOTER_LENGTH);
     expect(footer.getUint32(8, true)).toBe(PAYLOAD_FORMAT_VERSION);
     expect(readU64(footer, 28)).toBe(payload.byteLength);
-    expect(footer.getUint32(36, true)).toBe(FOOTER_CHECKSUM_NONE);
+    expect(footer.getUint32(36, true)).toBe(crc32(readTocBytes(payload)));
   });
 
   it("writes one file chunk and a JSON TOC", async () => {
@@ -258,11 +258,14 @@ function readFooter(payload: Uint8Array): {
 }
 
 function readToc(payload: Uint8Array): PayloadToc {
-  const footer = readFooter(payload);
-  const tocBytes = payload.slice(footer.tocOffset, footer.tocOffset + footer.tocLength);
-  return JSON.parse(textDecoder.decode(tocBytes)) as PayloadToc;
+  return JSON.parse(textDecoder.decode(readTocBytes(payload))) as PayloadToc;
 }
 
 function readU64(view: DataView, byteOffset: number): number {
   return Number(view.getBigUint64(byteOffset, true));
+}
+
+function readTocBytes(payload: Uint8Array): Uint8Array {
+  const footer = readFooter(payload);
+  return payload.slice(footer.tocOffset, footer.tocOffset + footer.tocLength);
 }

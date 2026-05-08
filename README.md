@@ -65,7 +65,7 @@ it must not be used to hide secrets.
 
 ## Status
 
-Current milestone: minimal in-memory payload reader.
+Current milestone: integrity support.
 
 Available today:
 
@@ -84,6 +84,8 @@ Available today:
 - optional per-chunk SHA-256 hash metadata.
 - `openPayload` for in-memory v0 payload reading;
 - archive helpers for `list`, `has`, `getToc`, `readBytes`, `readText`, and `readJson`.
+- `archive.verify()` for SHA-256 chunk integrity verification;
+- footer CRC32 for TOC corruption detection.
 
 Planned next slices are described in `ROADMAP.md`.
 

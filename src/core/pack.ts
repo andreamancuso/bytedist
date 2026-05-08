@@ -20,6 +20,7 @@ import type {
   PayloadToc
 } from "../format/types.js";
 import { sha256Hex } from "./hash.js";
+import { crc32 } from "./hash.js";
 import { writePayloadFooter, writePayloadHeader } from "./layout.js";
 
 const MANIFEST_CHUNK_NAME = "manifest.json";
@@ -64,7 +65,8 @@ export async function createPayload(options: CreatePayloadOptions): Promise<Uint
   const footer = writePayloadFooter({
     tocOffset: offset,
     tocLength: tocBytes.byteLength,
-    payloadLength
+    payloadLength,
+    footerChecksum: crc32(tocBytes)
   });
 
   return concatBytes([writePayloadHeader(), ...chunkBytes, tocBytes, footer], payloadLength);

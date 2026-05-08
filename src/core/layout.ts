@@ -12,6 +12,7 @@ export interface PayloadFooterFields {
   readonly tocOffset: number;
   readonly tocLength: number;
   readonly payloadLength: number;
+  readonly footerChecksum?: number;
 }
 
 export function writePayloadHeader(): Uint8Array {
@@ -36,7 +37,7 @@ export function writePayloadFooter(fields: PayloadFooterFields): Uint8Array {
   view.setBigUint64(12, BigInt(fields.tocOffset), true);
   view.setBigUint64(20, BigInt(fields.tocLength), true);
   view.setBigUint64(28, BigInt(fields.payloadLength), true);
-  view.setUint32(36, FOOTER_CHECKSUM_NONE, true);
+  view.setUint32(36, fields.footerChecksum ?? FOOTER_CHECKSUM_NONE, true);
 
   return footer;
 }

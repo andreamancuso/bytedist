@@ -14,6 +14,8 @@ import {
   PayloadEmbeddingError,
   PayloadFormatError,
   PayloadIntegrityError,
+  PayloadIntegrityMetadataMissingError,
+  PayloadIntegrityMismatchError,
   PayloadVersionError,
   assertFooterMagic,
   assertPayloadMagic,
@@ -109,6 +111,8 @@ describe("format errors", () => {
   it.each([
     [PayloadFormatError, "bad format"],
     [PayloadIntegrityError, "bad hash"],
+    [PayloadIntegrityMetadataMissingError, "missing hash"],
+    [PayloadIntegrityMismatchError, "mismatched hash"],
     [PayloadCompressionError, "bad compression"],
     [PayloadEmbeddingError, "bad embedding"]
   ])("preserves message and error identity for %s", (ErrorClass, message) => {

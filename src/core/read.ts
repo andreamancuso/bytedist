@@ -1,7 +1,6 @@
 import {
   DEFAULT_COMPRESSION,
   DEFAULT_TOC_ENCODING,
-  FOOTER_CHECKSUM_NONE,
   PAYLOAD_FLAGS_NONE,
   PAYLOAD_FOOTER_LENGTH,
   PAYLOAD_FORMAT_VERSION,
@@ -12,7 +11,9 @@ import {
   PayloadChunkNotFoundError,
   PayloadCompressionError,
   PayloadFormatError,
-  PayloadUnsupportedFeatureError
+  PayloadIntegrityError,
+  PayloadIntegrityMetadataMissingError,
+  PayloadIntegrityMismatchError
 } from "../format/errors.js";
 import {
   assertFooterMagic,
@@ -30,6 +31,7 @@ import type {
   PayloadManifestReference,
   PayloadToc
 } from "../format/types.js";
+import { crc32, sha256Hex } from "./hash.js";
 
 const textDecoder = new TextDecoder();
 
@@ -44,6 +46,7 @@ interface FooterFields {
   readonly tocOffset: number;
   readonly tocLength: number;
   readonly payloadLength: number;
+  readonly tocChecksum: number;
 }
 
 interface ParsedPayload {
@@ -126,10 +129,6 @@ function parseFooter(bytes: Uint8Array): FooterFields {
     );
   }
 
-  if (checksum !== FOOTER_CHECKSUM_NONE) {
-    throw new PayloadFormatError(`Unsupported ByteDist footer checksum value: ${checksum}.`);
-  }
-
   if (tocOffset < PAYLOAD_HEADER_LENGTH) {
     throw new PayloadFormatError(`Invalid ByteDist TOC offset: ${tocOffset}.`);
   }
@@ -147,12 +146,20 @@ function parseFooter(bytes: Uint8Array): FooterFields {
     formatVersion: PAYLOAD_FORMAT_VERSION,
     tocOffset,
     tocLength,
-    payloadLength
+    payloadLength,
+    tocChecksum: checksum
   };
 }
 
 function parseToc(bytes: Uint8Array, footer: FooterFields): PayloadToc {
   const tocBytes = bytes.slice(footer.tocOffset, footer.tocOffset + footer.tocLength);
+  const actualChecksum = crc32(tocBytes);
+
+  if (actualChecksum !== footer.tocChecksum) {
+    throw new PayloadIntegrityError(
+      `ByteDist TOC CRC32 mismatch: expected ${footer.tocChecksum}, got ${actualChecksum}.`
+    );
+  }
 
   try {
     const parsed = JSON.parse(textDecoder.decode(tocBytes));
@@ -331,9 +338,24 @@ class InMemoryOpenedPayload implements OpenedPayload {
   }
 
   public async verify(): Promise<void> {
-    throw new PayloadUnsupportedFeatureError(
-      "ByteDist payload integrity verification is not implemented yet."
-    );
+    for (const chunk of this.#toc.chunks) {
+      if (!chunk.hash) {
+        throw new PayloadIntegrityMetadataMissingError(
+          `ByteDist chunk ${chunk.name} has no integrity metadata.`,
+          { chunkName: chunk.name }
+        );
+      }
+
+      const bytes = this.#bytes.slice(chunk.offset, chunk.offset + chunk.storedLength);
+      const actualHash = await sha256Hex(bytes);
+
+      if (actualHash !== chunk.hash.value) {
+        throw new PayloadIntegrityMismatchError(
+          `ByteDist chunk ${chunk.name} failed integrity verification.`,
+          { chunkName: chunk.name }
+        );
+      }
+    }
   }
 
   public close(): void {
