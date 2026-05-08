@@ -29,7 +29,7 @@ HTML template + viewer JS + WASM decoder + .bytedist
 
 ## Current Progress
 
-As of May 8, 2026, the repository has completed the framing and setup work plus the first writer, reader, integrity, Node filesystem helper, CLI, and browser loader slices:
+As of May 8, 2026, the repository has completed the framing and setup work plus the first writer, reader, integrity, Node filesystem helper, CLI, browser loader, and single-file HTML embedding slices:
 
 - Stage 0 project framing is complete in `README.md`, with generic product language, target audience, license, and explicit no-DRM/no-secrets language.
 - Stage 1 repository setup is complete with npm package metadata, TypeScript, Vitest, Prettier, declaration-emitting build, package dry-run support, and GitHub Actions CI.
@@ -71,8 +71,13 @@ As of May 8, 2026, the repository has completed the framing and setup work plus 
   - `loadPayloadFromUrl` fetches and opens payloads with typed load errors;
   - `loadPayloadFromBlob` and `loadPayloadFromFile` support file inputs and drag-and-drop workflows;
   - chunk Blob and object URL helpers support media display and explicit revocation.
+- Stage 9 single-file HTML embedding is complete:
+  - `bytedist/html` exports base64 encode/decode helpers and `embedPayloadInHtml`;
+  - embedded payloads use non-executable `application/octet-stream+base64` script blocks;
+  - `bytedist/browser` can read embedded payload bytes or open embedded archives;
+  - `examples/single-file-html/` demonstrates a no-bundler embedded payload page.
 
-Single-file HTML embedding, HTML bundler, and WASM reader are still future work.
+HTML bundler and WASM reader are still future work.
 
 ## Important Product Language
 
@@ -1246,6 +1251,10 @@ Progress:
 
 ## Stage 9: Single-File HTML Embedding
 
+Status: Complete.
+
+Implemented in `src/html/index.ts`, `src/browser/index.ts`, and `examples/single-file-html/index.html`.
+
 ### 9.1 Define Embedding Strategy
 
 Use script tags with non-JS MIME types.
@@ -1264,6 +1273,10 @@ Acceptance criteria:
 - It works without external files.
 - It does not execute embedded payload content.
 
+Progress:
+
+- Complete. Payloads are embedded as non-executable `application/octet-stream+base64` script blocks with the `data-bytedist-payload` attribute.
+
 ### 9.2 Base64 Encode Helper
 
 Implement robust base64 encoding for Node and browser.
@@ -1273,6 +1286,10 @@ Acceptance criteria:
 - Large payloads can be encoded.
 - Tests cover binary data, not just text.
 
+Progress:
+
+- Complete. `encodeBase64` is pure TypeScript, supports optional line wrapping, and is tested with binary and larger byte arrays.
+
 ### 9.3 Base64 Decode Helper
 
 Implement browser-safe decoding to `Uint8Array`.
@@ -1281,6 +1298,10 @@ Acceptance criteria:
 
 - Handles whitespace/newlines.
 - Throws useful errors on invalid base64.
+
+Progress:
+
+- Complete. `decodeBase64` strips whitespace/newlines and throws `PayloadEmbeddingError` for invalid characters, lengths, or padding.
 
 ### 9.4 `embedPayloadInHtml`
 
@@ -1292,6 +1313,10 @@ Acceptance criteria:
 - Fails clearly if marker is missing.
 - Supports minified or multiline output.
 
+Progress:
+
+- Complete. `embedPayloadInHtml` defaults to `<!-- BYTEDIST_PAYLOAD -->`, supports custom markers, and emits minified or wrapped multiline payload blocks.
+
 ### 9.5 `readEmbeddedPayload`
 
 Implement browser runtime extraction.
@@ -1301,6 +1326,10 @@ Acceptance criteria:
 - Finds embedded payload by selector.
 - Decodes bytes.
 - Opens the archive.
+
+Progress:
+
+- Complete. `readEmbeddedPayload` returns decoded bytes, and `openEmbeddedPayload` returns an `OpenedPayload` using the browser entrypoint.
 
 ### 9.6 Single-File Demo
 
@@ -1312,6 +1341,10 @@ Acceptance criteria:
 - Demo displays at least one text asset and one image asset.
 - No server is required.
 - Demo does not expose friendly media filenames or raw media data URLs in the HTML source when using the deterrence profile.
+
+Progress:
+
+- Complete. `examples/single-file-html/index.html` is a static framework-free demo with one embedded payload block, a text asset, JSON metadata, and an image rendered through a Blob object URL.
 
 ## Stage 10: HTML Bundler CLI
 

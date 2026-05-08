@@ -21,8 +21,8 @@ The project is intended to provide:
 
 This repository is at the early MVP stage. It exports the initial payload
 format, in-memory writer and reader APIs, Node filesystem helpers, CLI commands,
-and browser loading helpers. Single-file HTML embedding and the WASM reader are
-planned next.
+browser loading helpers, and single-file HTML embedding helpers. The HTML
+bundler CLI and WASM reader are planned next.
 
 ## Project Brief
 
@@ -65,7 +65,7 @@ it must not be used to hide secrets.
 
 ## Status
 
-Current milestone: browser loader.
+Current milestone: single-file HTML embedding.
 
 Available today:
 
@@ -89,6 +89,7 @@ Available today:
 - `bytedist/node` helpers for packing directories and writing payload files.
 - `bytedist` CLI commands for `pack`, `inspect`, and `verify`.
 - `bytedist/browser` helpers for URL, Blob, File, and object URL loading.
+- `bytedist/html` helpers for base64 payload blocks and HTML template injection.
 
 CLI:
 
@@ -126,12 +127,28 @@ import { createChunkObjectUrl, loadPayloadFromUrl } from "bytedist/browser";
 const archive = await loadPayloadFromUrl("artifact.bytedist");
 await archive.verify();
 
-const image = await createChunkObjectUrl(archive, "images/preview.png");
+const image = await createChunkObjectUrl(archive, "c/a91d4e70");
 document.querySelector("img")?.setAttribute("src", image.url);
 
 // Revoke when the resource is no longer displayed.
 image.revoke();
 ```
+
+Single-file HTML helpers are exported from `bytedist/html`, with embedded
+runtime loading available from `bytedist/browser`:
+
+```ts
+import { loadPayloadFromUrl, openEmbeddedPayload } from "bytedist/browser";
+import { embedPayloadInHtml } from "bytedist/html";
+
+const html = embedPayloadInHtml(templateHtml, payloadBytes);
+const archive = await openEmbeddedPayload();
+
+// External payload loading still works for hosted artifacts.
+const hostedArchive = await loadPayloadFromUrl("artifact.bytedist");
+```
+
+A minimal no-bundler example lives in `examples/single-file-html/`.
 
 Planned next slices are described in `ROADMAP.md`.
 

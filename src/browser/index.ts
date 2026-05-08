@@ -1,6 +1,7 @@
 import { openPayload } from "../core/index.js";
-import { PayloadLoadError } from "../format/errors.js";
+import { PayloadEmbeddingError, PayloadLoadError } from "../format/errors.js";
 import type { OpenedPayload } from "../format/types.js";
+import { EMBEDDED_PAYLOAD_SELECTOR, decodeBase64 } from "../html/index.js";
 
 export interface LoadPayloadFromUrlOptions {
   readonly fetch?: typeof fetch;
@@ -19,6 +20,11 @@ export interface ChunkObjectUrl {
 
 export interface CreateChunkObjectUrlOptions extends ReadChunkAsBlobOptions {
   readonly urlFactory?: Pick<typeof URL, "createObjectURL" | "revokeObjectURL">;
+}
+
+export interface ReadEmbeddedPayloadOptions {
+  readonly selector?: string;
+  readonly document?: Pick<Document, "querySelector">;
 }
 
 export async function loadPayloadFromUrl(
@@ -67,6 +73,29 @@ export async function loadPayloadFromBlob(blob: Blob): Promise<OpenedPayload> {
 
 export async function loadPayloadFromFile(file: File): Promise<OpenedPayload> {
   return loadPayloadFromBlob(file);
+}
+
+export function readEmbeddedPayload(options: ReadEmbeddedPayloadOptions = {}): Uint8Array {
+  const documentRef = options.document ?? globalThis.document;
+
+  if (documentRef === undefined) {
+    throw new PayloadEmbeddingError("Document is unavailable in this runtime.");
+  }
+
+  const selector = options.selector ?? EMBEDDED_PAYLOAD_SELECTOR;
+  const element = documentRef.querySelector(selector);
+
+  if (element === null) {
+    throw new PayloadEmbeddingError(`Embedded ByteDist payload element not found: ${selector}`);
+  }
+
+  return decodeBase64(element.textContent ?? "");
+}
+
+export async function openEmbeddedPayload(
+  options: ReadEmbeddedPayloadOptions = {}
+): Promise<OpenedPayload> {
+  return openPayload(readEmbeddedPayload(options));
 }
 
 export async function readChunkAsBlob(

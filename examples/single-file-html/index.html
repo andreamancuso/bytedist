@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ByteDist Embedded Payload Demo</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family:
+          Inter,
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: Canvas;
+        color: CanvasText;
+      }
+
+      main {
+        width: min(42rem, calc(100vw - 2rem));
+      }
+
+      img {
+        width: 96px;
+        height: 96px;
+        image-rendering: pixelated;
+        border: 1px solid color-mix(in srgb, CanvasText 22%, transparent);
+      }
+
+      pre {
+        overflow: auto;
+        padding: 0.75rem;
+        background: color-mix(in srgb, CanvasText 8%, transparent);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>ByteDist embedded payload</h1>
+      <p id="message">Loading payload...</p>
+      <img id="image" alt="Embedded payload image" />
+      <pre id="metadata"></pre>
+    </main>
+
+    <script type="module">
+      const PAYLOAD_SELECTOR =
+        'script[type="application/octet-stream+base64"][data-bytedist-payload]';
+      const textDecoder = new TextDecoder();
+
+      try {
+        const payload = readEmbeddedPayload();
+        const archive = openPayload(payload);
+        const manifest = JSON.parse(readText(archive, "manifest.json"));
+        const metadata = JSON.parse(readText(archive, manifest.data));
+        const imageBytes = readBytes(archive, manifest.image);
+        const imageType = archive.chunks.get(manifest.image)?.mime ?? "application/octet-stream";
+        const imageUrl = URL.createObjectURL(new Blob([imageBytes], { type: imageType }));
+
+        document.title = manifest.title;
+        document.querySelector("#message").textContent = readText(archive, manifest.text);
+        document.querySelector("#metadata").textContent = JSON.stringify(metadata, null, 2);
+        document.querySelector("#image").src = imageUrl;
+        window.addEventListener("pagehide", () => URL.revokeObjectURL(imageUrl), { once: true });
+      } catch (error) {
+        document.querySelector("#message").textContent =
+          error instanceof Error ? error.message : String(error);
+      }
+
+      function readEmbeddedPayload() {
+        const element = document.querySelector(PAYLOAD_SELECTOR);
+        if (!element) {
+          throw new Error("Embedded ByteDist payload was not found.");
+        }
+
+        return decodeBase64(element.textContent ?? "");
+      }
+
+      function openPayload(bytes) {
+        assertAscii(bytes.subarray(0, 8), "BDISTPAY", "Invalid ByteDist header magic.");
+
+        const footerOffset = bytes.byteLength - 40;
+        assertAscii(bytes.subarray(footerOffset, footerOffset + 8), "BDISTEND", "Invalid footer.");
+
+        const footer = new DataView(bytes.buffer, bytes.byteOffset + footerOffset, 40);
+        const tocOffset = Number(footer.getBigUint64(12, true));
+        const tocLength = Number(footer.getBigUint64(20, true));
+        const payloadLength = Number(footer.getBigUint64(28, true));
+
+        if (payloadLength !== bytes.byteLength) {
+          throw new Error("ByteDist payload length mismatch.");
+        }
+
+        const tocBytes = bytes.slice(tocOffset, tocOffset + tocLength);
+        const toc = JSON.parse(textDecoder.decode(tocBytes));
+        return {
+          bytes,
+          toc,
+          chunks: new Map(toc.chunks.map((chunk) => [chunk.name, chunk]))
+        };
+      }
+
+      function readText(archive, name) {
+        return textDecoder.decode(readBytes(archive, name));
+      }
+
+      function readBytes(archive, name) {
+        const chunk = archive.chunks.get(name);
+        if (!chunk) {
+          throw new Error(`Missing ByteDist chunk: ${name}`);
+        }
+
+        return archive.bytes.slice(chunk.offset, chunk.offset + chunk.storedLength);
+      }
+
+      function decodeBase64(text) {
+        const binary = atob(text.replace(/\s+/g, ""));
+        const bytes = new Uint8Array(binary.length);
+
+        for (let index = 0; index < binary.length; index += 1) {
+          bytes[index] = binary.charCodeAt(index);
+        }
+
+        return bytes;
+      }
+
+      function assertAscii(bytes, expected, message) {
+        if (textDecoder.decode(bytes) !== expected) {
+          throw new Error(message);
+        }
+      }
+    </script>
+
+    <script type="application/octet-stream+base64" data-bytedist-payload>
+      QkRJU1RQQVkAAAAAGAAAAAAAAAAAAAAAeyJ0aXRsZSI6IkVtYmVkZGVkIEJ5dGVEaXN0IERlbW8iLCJ0ZXh0IjoiYy8wZjNhN2QxYyIsImRhdGEiOiJjLzgzYmM5MWUyIiwiaW1hZ2UiOiJjL2E5MWQ0ZTcwIn1IZWxsbyBmcm9tIGFuIGVtYmVkZGVkIEJ5dGVEaXN0IHBheWxvYWQueyJraW5kIjoiZGVtbyIsIm9mZmxpbmUiOnRydWV9iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYIJ7InZlcnNpb24iOjAsInRvY0VuY29kaW5nIjoianNvbiIsIm1hbmlmZXN0Ijp7InBhdGgiOiJtYW5pZmVzdC5qc29uIn0sImNodW5rcyI6W3sibmFtZSI6Im1hbmlmZXN0Lmpzb24iLCJvZmZzZXQiOjI0LCJsZW5ndGgiOjk1LCJzdG9yZWRMZW5ndGgiOjk1LCJtaW1lIjoiYXBwbGljYXRpb24vanNvbiIsImVuY29kaW5nIjoidXRmLTgiLCJjb21wcmVzc2lvbiI6Im5vbmUiLCJoYXNoIjp7ImFsZ29yaXRobSI6InNoYTI1NiIsInZhbHVlIjoiMDQ2NDM2Zjg0NjI2ZjBkOTQ0OGY4YWJmMjliYmUyNmYzMWZjMjIzODBiM2RjODdhMzljNjllZTcxNTkyZjk0ZCJ9fSx7Im5hbWUiOiJjLzBmM2E3ZDFjIiwib2Zmc2V0IjoxMTksImxlbmd0aCI6NDAsInN0b3JlZExlbmd0aCI6NDAsIm1pbWUiOiJ0ZXh0L3BsYWluIiwiZW5jb2RpbmciOiJ1dGYtOCIsImNvbXByZXNzaW9uIjoibm9uZSIsImhhc2giOnsiYWxnb3JpdGhtIjoic2hhMjU2IiwidmFsdWUiOiI1YWFiM2Q5NjFmZDIzN2E1ZDU4ZDQyMzAzNWMxNGEyNGRmZTEzOTVhZGNlOTU3NjA1Y2FkMWNjMzBmOWM2YjE4In19LHsibmFtZSI6ImMvODNiYzkxZTIiLCJvZmZzZXQiOjE1OSwibGVuZ3RoIjozMCwic3RvcmVkTGVuZ3RoIjozMCwibWltZSI6ImFwcGxpY2F0aW9uL2pzb24iLCJlbmNvZGluZyI6InV0Zi04IiwiY29tcHJlc3Npb24iOiJub25lIiwiaGFzaCI6eyJhbGdvcml0aG0iOiJzaGEyNTYiLCJ2YWx1ZSI6IjFjNjQzNGY4OWIzMjA5MGJmZGQwYzViZGE2OTJkNDhjN2M3OTA3YWQ4OTc5MTAyMTk5MDQwMDMzMGQzYzQ5ZDkifX0seyJuYW1lIjoiYy9hOTFkNGU3MCIsIm9mZnNldCI6MTg5LCJsZW5ndGgiOjY4LCJzdG9yZWRMZW5ndGgiOjY4LCJtaW1lIjoiaW1hZ2UvcG5nIiwiY29tcHJlc3Npb24iOiJub25lIiwiaGFzaCI6eyJhbGdvcml0aG0iOiJzaGEyNTYiLCJ2YWx1ZSI6IjRiNWM1YzkyY2VjM2IyM2U2YTI5NGZjMGVlYTQzMjM0ZWY1MTI2YzVhNjRmNGM2YzUzMWFjODQzMGFiMGI4NDQifX1dfUJESVNURU5EAAAAAAEBAAAAAAAA4wMAAAAAAAAMBQAAAAAAADWhnRU=
+    </script>
+  </body>
+</html>

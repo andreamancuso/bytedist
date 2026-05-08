@@ -8,8 +8,12 @@ import {
   loadPayloadFromBlob,
   loadPayloadFromFile,
   loadPayloadFromUrl,
+  openEmbeddedPayload,
+  readEmbeddedPayload,
   readChunkAsBlob
 } from "./index.js";
+import { encodeBase64 } from "../html/index.js";
+import { PayloadEmbeddingError } from "../format/errors.js";
 
 const textEncoder = new TextEncoder();
 
@@ -73,6 +77,38 @@ describe("browser payload helpers", () => {
     const archive = await loadPayloadFromFile(file);
 
     await expect(archive.readText("message.txt")).resolves.toBe("hello browser");
+  });
+
+  it("reads embedded payload bytes from the default selector", async () => {
+    const payload = await createBrowserFixture();
+    const document = createDocumentStub(encodeBase64(payload));
+
+    expect(readEmbeddedPayload({ document })).toEqual(payload);
+    expect(document.querySelector).toHaveBeenCalledWith(
+      'script[type="application/octet-stream+base64"][data-bytedist-payload]'
+    );
+  });
+
+  it("opens embedded payloads from custom selectors", async () => {
+    const payload = await createBrowserFixture();
+    const document = createDocumentStub(encodeBase64(payload, { lineLength: 12 }));
+
+    const archive = await openEmbeddedPayload({
+      document,
+      selector: "[data-demo-payload]"
+    });
+
+    await expect(archive.readText("message.txt")).resolves.toBe("hello browser");
+    await expect(archive.verify()).resolves.toBeUndefined();
+    expect(document.querySelector).toHaveBeenCalledWith("[data-demo-payload]");
+  });
+
+  it("reports missing embedded payload elements clearly", () => {
+    const document = {
+      querySelector: vi.fn(() => null)
+    };
+
+    expect(() => readEmbeddedPayload({ document })).toThrow(PayloadEmbeddingError);
   });
 
   it("creates blobs from chunks using TOC MIME metadata", async () => {
@@ -153,4 +189,12 @@ function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
   const buffer = new ArrayBuffer(bytes.byteLength);
   new Uint8Array(buffer).set(bytes);
   return buffer;
+}
+
+function createDocumentStub(textContent: string): Pick<Document, "querySelector"> & {
+  readonly querySelector: ReturnType<typeof vi.fn>;
+} {
+  return {
+    querySelector: vi.fn(() => ({ textContent }) as Element)
+  };
 }
