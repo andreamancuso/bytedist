@@ -27,6 +27,21 @@ HTML template + viewer JS + WASM decoder + .bytedist
   -> single self-contained HTML file
 ```
 
+## Current Progress
+
+As of May 8, 2026, the repository has completed the framing and setup work needed before payload implementation:
+
+- Stage 0 project framing is complete in `README.md`, with generic product language, target audience, license, and explicit no-DRM/no-secrets language.
+- Stage 1 repository setup is complete with npm package metadata, TypeScript, Vitest, Prettier, declaration-emitting build, package dry-run support, and GitHub Actions CI.
+- Stage 2 format constants and types are complete enough for the next implementation slice:
+  - payload header magic is `BDISTPAY`;
+  - footer magic is `BDISTEND`;
+  - payload format version is `0`;
+  - public TypeScript types, format validation helpers, and error classes are exported from `src/index.ts`;
+  - tests cover valid/invalid magic bytes, unsupported versions, and error identity.
+
+The payload writer, reader, integrity implementation, CLI commands, browser runtime, HTML bundler, and WASM reader are still future work.
+
 ## Important Product Language
 
 ByteDist should be described as:
@@ -252,7 +267,7 @@ Footer-last TOC is useful because the writer can stream chunk data first and wri
 ### Header v0
 
 ```text
-magic:          8 bytes   "PKITPAY\0" or similar
+magic:          8 bytes   "BDISTPAY"
 formatVersion: u32
 headerLength:  u32
 flags:         u32
@@ -262,7 +277,7 @@ reserved:      bytes
 ### Footer v0
 
 ```text
-footerMagic:      8 bytes
+footerMagic:      8 bytes   "BDISTEND"
 formatVersion:   u32
 tocOffset:       u64
 tocLength:       u64
@@ -487,6 +502,14 @@ Public `extract` is deliberately not part of the first MVP. Extraction helpers m
 
 ## Stage 0: Project Framing
 
+Status: Complete.
+
+Implemented in:
+
+- `README.md`
+- `LICENSE`
+- `SECURITY.md`
+
 ### 0.1 Define the Generic Problem
 
 Write a short project brief explaining what the library is and is not.
@@ -496,6 +519,10 @@ Acceptance criteria:
 - The brief does not mention any private host application as the core use case.
 - The brief includes at least three generic use cases.
 - The brief explicitly says the project is not DRM.
+
+Progress:
+
+- Complete. `README.md` defines ByteDist generically and names static exports, interactive documents, kiosk/demo/game/visualization/training artifacts, browser-based editors, and local-first applications as generic use cases.
 
 ### 0.2 Choose a Working Name
 
@@ -507,6 +534,10 @@ Acceptance criteria:
 - The name does not make security claims.
 - The name does not collide obviously with Web Bundles or WASM itself.
 
+Progress:
+
+- Complete. The package name is `bytedist`.
+
 ### 0.3 Pick a License
 
 Recommended default: MIT or Apache-2.0.
@@ -516,6 +547,10 @@ Acceptance criteria:
 - `LICENSE` exists.
 - README states the license.
 - Any third-party dependencies are compatible.
+
+Progress:
+
+- Complete. The repository uses MIT.
 
 ### 0.4 Define Initial Audience
 
@@ -532,7 +567,26 @@ Acceptance criteria:
 
 - README has a short “Who is this for?” section.
 
+Progress:
+
+- Complete. `README.md` includes a “Who Is This For?” section.
+
 ## Stage 1: Repository Setup
+
+Status: Complete.
+
+Implemented in:
+
+- `package.json`
+- `package-lock.json`
+- `tsconfig.json`
+- `tsconfig.build.json`
+- `vitest.config.ts`
+- `.prettierrc.json`
+- `.prettierignore`
+- `.github/workflows/ci.yml`
+- `src/index.ts`
+- `src/index.test.ts`
 
 ### 1.1 Initialize TypeScript Project
 
@@ -545,6 +599,10 @@ Acceptance criteria:
 - `npm run build` works.
 - TypeScript emits type declarations.
 
+Progress:
+
+- Complete. The package has TypeScript, Vitest, build and typecheck scripts, and declaration output.
+
 ### 1.2 Add Basic CI
 
 Add GitHub Actions or similar.
@@ -555,6 +613,10 @@ Acceptance criteria:
 - CI runs on pull requests.
 - CI runs on main branch pushes.
 
+Progress:
+
+- Complete. GitHub Actions runs install, typecheck, tests, build, formatting check, and package dry-run on pull requests and `main` pushes.
+
 ### 1.3 Add Formatting
 
 Add Prettier or equivalent.
@@ -563,6 +625,10 @@ Acceptance criteria:
 
 - `npm run format` exists.
 - `npm run format:check` exists.
+
+Progress:
+
+- Complete. Prettier scripts are configured.
 
 ### 1.4 Add Package Metadata
 
@@ -574,7 +640,23 @@ Acceptance criteria:
 - Package uses ESM first unless there is a strong reason not to.
 - Types are exported.
 
+Progress:
+
+- Complete. The package is ESM-first, exports `dist/index.js` and `dist/index.d.ts`, includes repository metadata, and validates package contents with `npm pack --dry-run`.
+
 ## Stage 2: Format Constants and Types
+
+Status: Complete for the constant/type/error surface. Reader and writer behavior remains future work.
+
+Implemented in:
+
+- `src/format/constants.ts`
+- `src/format/types.ts`
+- `src/format/errors.ts`
+- `src/format/validation.ts`
+- `src/format/index.ts`
+- `src/index.ts`
+- `src/index.test.ts`
 
 ### 2.1 Define Magic Bytes
 
@@ -586,6 +668,11 @@ Acceptance criteria:
 - Reader rejects files without the magic bytes.
 - Tests cover valid and invalid magic bytes.
 
+Progress:
+
+- Complete for Stage 2. The exported header magic is `BDISTPAY`; the exported footer magic is `BDISTEND`.
+- Pure validation helpers reject invalid or short magic byte arrays. The future reader should call these helpers when Stage 4 implements `openPayload`.
+
 ### 2.2 Define Versioning
 
 Add a format version constant.
@@ -595,6 +682,11 @@ Acceptance criteria:
 - Version is stored in payloads.
 - Reader rejects unsupported future major versions.
 - Tests cover unsupported versions.
+
+Progress:
+
+- Complete for Stage 2. The exported payload format version is `0`.
+- Pure validation helpers reject unsupported versions. The future writer will store this value, and the future reader will call these helpers.
 
 ### 2.3 Define Core Types
 
@@ -614,6 +706,10 @@ Acceptance criteria:
 - Public types are exported.
 - Internal-only types are not accidentally exported.
 
+Progress:
+
+- Complete. Public types cover payload creation options, file inputs, chunk records, TOC shape, integrity and compression algorithms, JSON values, and the planned opened-payload reader interface.
+
 ### 2.4 Define Error Classes
 
 Create specific errors:
@@ -629,6 +725,10 @@ Acceptance criteria:
 
 - Errors include useful messages.
 - Tests assert error types, not just messages.
+
+Progress:
+
+- Complete. `ByteDistError` and payload-specific error classes are exported and covered by tests.
 
 ## Stage 3: Minimal In-Memory Payload Writer
 

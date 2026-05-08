@@ -19,8 +19,10 @@ The project is intended to provide:
 - narrow WASM reader/validator support for hardened standalone artifacts;
 - CLI tooling for packing, inspecting, verifying, and bundling HTML artifacts.
 
-This repository is at the package-skeleton stage. The payload format and runtime
-APIs are intentionally not implemented yet.
+This repository is at the early format-surface stage. It exports initial format
+constants, public TypeScript types, validation helpers, and error classes. The
+payload writer, reader, CLI, browser runtime, and WASM reader are intentionally
+not implemented yet.
 
 ## Project Brief
 
@@ -63,7 +65,7 @@ it must not be used to hide secrets.
 
 ## Status
 
-Current milestone: repository and npm package skeleton.
+Current milestone: format constants and public types.
 
 Available today:
 
@@ -72,6 +74,11 @@ Available today:
 - Vitest test runner;
 - Prettier formatting scripts;
 - public security guidance.
+- fixed payload magic bytes: `BDISTPAY`;
+- distinct footer magic bytes: `BDISTEND`;
+- payload format version constant: `0`;
+- low-level format validation helpers;
+- public error classes and planned API types.
 
 Planned next slices are described in `ROADMAP.md`.
 
