@@ -57,6 +57,10 @@ export async function packDirectory(
     files,
     ...(options.integrity === undefined ? {} : { integrity: options.integrity }),
     ...(options.compression === undefined ? {} : { compression: options.compression }),
+    ...(options.compressionMode === undefined ? {} : { compressionMode: options.compressionMode }),
+    ...(options.compressionCodecs === undefined
+      ? {}
+      : { compressionCodecs: options.compressionCodecs }),
     ...(options.createdBy === undefined ? {} : { createdBy: options.createdBy }),
     ...(options.metadata === undefined ? {} : { metadata: options.metadata })
   });

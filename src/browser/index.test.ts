@@ -70,6 +70,15 @@ describe("browser payload helpers", () => {
     await expect(archive.readJson("data.json")).resolves.toEqual({ ok: true });
   });
 
+  it("passes compression codecs through Blob loading", async () => {
+    const payload = await createCompressedBrowserFixture();
+    const archive = await loadPayloadFromBlob(new Blob([toArrayBuffer(payload)]), {
+      compressionCodecs: [fakeShrinkingCodec]
+    });
+
+    await expect(archive.readText("message.txt")).resolves.toBe("aaaaaa");
+  });
+
   it("loads a payload from a File", async () => {
     const payload = await createBrowserFixture();
     const file = new File([toArrayBuffer(payload)], "demo.bytedist", {
@@ -102,6 +111,17 @@ describe("browser payload helpers", () => {
     await expect(archive.readText("message.txt")).resolves.toBe("hello browser");
     await expect(archive.verify()).resolves.toBeUndefined();
     expect(document.querySelector).toHaveBeenCalledWith("[data-demo-payload]");
+  });
+
+  it("passes compression codecs through embedded payload opening", async () => {
+    const payload = await createCompressedBrowserFixture();
+    const document = createDocumentStub(encodeBase64(payload));
+    const archive = await openEmbeddedPayload({
+      document,
+      compressionCodecs: [fakeShrinkingCodec]
+    });
+
+    await expect(archive.readText("message.txt")).resolves.toBe("aaaaaa");
   });
 
   it("reports missing embedded payload elements clearly", () => {
@@ -196,6 +216,22 @@ async function createBrowserFixture(): Promise<Uint8Array> {
   });
 }
 
+async function createCompressedBrowserFixture(): Promise<Uint8Array> {
+  return createPayload({
+    integrity: "sha256",
+    compression: "fake",
+    compressionCodecs: [fakeShrinkingCodec],
+    files: [
+      {
+        name: "message.txt",
+        bytes: textEncoder.encode("aaaaaa"),
+        mime: "text/plain",
+        encoding: "utf-8"
+      }
+    ]
+  });
+}
+
 function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
   const buffer = new ArrayBuffer(bytes.byteLength);
   new Uint8Array(buffer).set(bytes);
@@ -209,3 +245,13 @@ function createDocumentStub(textContent: string): Pick<Document, "querySelector"
     querySelector: vi.fn(() => ({ textContent }) as Element)
   };
 }
+
+const fakeShrinkingCodec = {
+  name: "fake",
+  async compress(bytes: Uint8Array): Promise<Uint8Array> {
+    return new Uint8Array([bytes.byteLength, bytes[0] ?? 0]);
+  },
+  async decompress(bytes: Uint8Array): Promise<Uint8Array> {
+    return new Uint8Array(bytes[0] ?? 0).fill(bytes[1] ?? 0);
+  }
+};

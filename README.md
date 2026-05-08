@@ -22,7 +22,8 @@ The project is intended to provide:
 This repository is at the early MVP stage. It exports the initial payload
 format, in-memory writer and reader APIs, Node filesystem helpers, CLI commands,
 browser loading helpers, single-file HTML embedding helpers, and an HTML bundler
-CLI. The WASM reader is planned next.
+CLI. Compression codec adapters are supported; built-in gzip/zstd codecs and the
+WASM reader are planned next.
 
 ## Project Brief
 
@@ -90,6 +91,7 @@ Available today:
 - `bytedist` CLI commands for `pack`, `inspect`, `verify`, and `bundle-html`.
 - `bytedist/browser` helpers for URL, Blob, File, and object URL loading.
 - `bytedist/html` helpers for base64 payload blocks and HTML template injection.
+- compression codec adapters for opt-in per-payload or per-chunk compression.
 
 CLI:
 
@@ -157,6 +159,28 @@ runtime and WASM inputs use `<!-- BYTEDIST_RUNTIME -->` and
 data blocks; caller-provided runtime JavaScript is executable by design. The
 command embeds an existing `.bytedist` file; use `pack` first when starting from
 a directory.
+
+Compression is adapter-based and opt-in:
+
+```ts
+import { createPayload, openPayload, type CompressionCodec } from "bytedist";
+
+const codec: CompressionCodec = {
+  name: "custom",
+  compress: async (bytes) => bytes,
+  decompress: async (bytes) => bytes
+};
+
+const payload = await createPayload({
+  files,
+  compression: "custom",
+  compressionCodecs: [codec]
+});
+
+const archive = await openPayload(payload, {
+  compressionCodecs: [codec]
+});
+```
 
 Planned next slices are described in `ROADMAP.md`.
 

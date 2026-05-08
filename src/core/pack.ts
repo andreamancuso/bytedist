@@ -13,12 +13,18 @@ import {
 import { assertValidChunkName } from "../format/validation.js";
 import type {
   CompressionAlgorithm,
+  CompressionMode,
   CreatePayloadOptions,
   JsonValue,
   PayloadChunkRecord,
   PayloadFileInput,
   PayloadToc
 } from "../format/types.js";
+import {
+  getCompressionCodec,
+  validateCompressionCodecs,
+  validateCompressionName
+} from "./compression.js";
 import { sha256Hex } from "./hash.js";
 import { crc32 } from "./hash.js";
 import { writePayloadFooter, writePayloadHeader } from "./layout.js";
@@ -32,9 +38,17 @@ interface PreparedChunk {
   readonly bytes: Uint8Array;
 }
 
+interface StoredChunk {
+  readonly input: PayloadFileInput;
+  readonly logicalBytes: Uint8Array;
+  readonly storedBytes: Uint8Array;
+  readonly compression: CompressionAlgorithm;
+}
+
 export async function createPayload(options: CreatePayloadOptions): Promise<Uint8Array> {
   validateIntegrityOption(options.integrity);
-  validateCompressionOption(options.compression ?? DEFAULT_COMPRESSION);
+  validateCompressionName(options.compression ?? DEFAULT_COMPRESSION);
+  validateCompressionCodecs(options.compressionCodecs);
 
   const chunks = prepareChunks(options);
   const chunkRecords: PayloadChunkRecord[] = [];
@@ -43,12 +57,20 @@ export async function createPayload(options: CreatePayloadOptions): Promise<Uint
 
   for (const chunk of chunks) {
     const compression = chunk.input.compression ?? options.compression ?? DEFAULT_COMPRESSION;
-    validateCompressionOption(compression);
+    const compressionMode = chunk.input.compressionMode ?? options.compressionMode ?? "smaller";
+    validateCompressionName(compression);
+    validateCompressionMode(compressionMode);
 
-    const record = await createChunkRecord(chunk, offset, compression, options.integrity);
+    const storedChunk = await prepareStoredChunk(
+      chunk,
+      compression,
+      compressionMode,
+      options.compressionCodecs
+    );
+    const record = await createChunkRecord(storedChunk, offset, options.integrity);
     chunkRecords.push(record);
-    chunkBytes.push(chunk.bytes);
-    offset += chunk.bytes.byteLength;
+    chunkBytes.push(storedChunk.storedBytes);
+    offset += storedChunk.storedBytes.byteLength;
   }
 
   const toc: PayloadToc = {
@@ -124,26 +146,53 @@ function addChunk(
 }
 
 async function createChunkRecord(
-  chunk: PreparedChunk,
+  chunk: StoredChunk,
   offset: number,
-  compression: CompressionAlgorithm,
   integrity: CreatePayloadOptions["integrity"]
 ): Promise<PayloadChunkRecord> {
   const hash =
     integrity === "sha256"
-      ? { algorithm: integrity, value: await sha256Hex(chunk.bytes) }
+      ? { algorithm: integrity, value: await sha256Hex(chunk.logicalBytes) }
       : undefined;
 
   return {
     name: chunk.input.name,
     offset,
-    length: chunk.bytes.byteLength,
-    storedLength: chunk.bytes.byteLength,
+    length: chunk.logicalBytes.byteLength,
+    storedLength: chunk.storedBytes.byteLength,
     ...(chunk.input.mime === undefined ? {} : { mime: chunk.input.mime }),
     ...(chunk.input.encoding === undefined ? {} : { encoding: chunk.input.encoding }),
-    compression,
+    compression: chunk.compression,
     ...(hash === undefined ? {} : { hash }),
     ...(chunk.input.metadata === undefined ? {} : { metadata: chunk.input.metadata })
+  };
+}
+
+async function prepareStoredChunk(
+  chunk: PreparedChunk,
+  compression: CompressionAlgorithm,
+  compressionMode: CompressionMode,
+  codecs: CreatePayloadOptions["compressionCodecs"]
+): Promise<StoredChunk> {
+  if (compression === DEFAULT_COMPRESSION) {
+    return {
+      input: chunk.input,
+      logicalBytes: chunk.bytes,
+      storedBytes: chunk.bytes,
+      compression: DEFAULT_COMPRESSION
+    };
+  }
+
+  const codec = getCompressionCodec(compression, codecs);
+  const compressedBytes = await codec.compress(chunk.bytes);
+  const shouldStoreCompressed =
+    compressionMode === "always" || compressedBytes.byteLength < chunk.bytes.byteLength;
+
+  return {
+    input: chunk.input,
+    logicalBytes: chunk.bytes,
+    storedBytes: shouldStoreCompressed ? compressedBytes : chunk.bytes,
+    compression: shouldStoreCompressed ? compression : DEFAULT_COMPRESSION
   };
 }
 
@@ -155,21 +204,17 @@ function serializeManifest(manifest: JsonValue): Uint8Array {
   }
 }
 
-function validateCompressionOption(
-  compression: unknown
-): asserts compression is CompressionAlgorithm {
-  if (compression !== DEFAULT_COMPRESSION) {
-    throw new PayloadCompressionError(
-      `Unsupported ByteDist compression algorithm: ${String(compression)}.`
-    );
-  }
-}
-
 function validateIntegrityOption(integrity: CreatePayloadOptions["integrity"]): void {
   if (integrity !== undefined && integrity !== false && integrity !== "sha256") {
     throw new PayloadIntegrityError(
       `Unsupported ByteDist integrity algorithm: ${String(integrity)}.`
     );
+  }
+}
+
+function validateCompressionMode(mode: unknown): asserts mode is CompressionMode {
+  if (mode !== "smaller" && mode !== "always") {
+    throw new PayloadCompressionError(`Unsupported ByteDist compression mode: ${String(mode)}.`);
   }
 }
 

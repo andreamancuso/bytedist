@@ -179,6 +179,79 @@ describe("createPayload", () => {
     ).rejects.toThrow(PayloadCompressionError);
   });
 
+  it("stores compressed chunks when a selected codec shrinks bytes", async () => {
+    const bytes = new TextEncoder().encode("aaaaaa");
+    const payload = await createPayload({
+      files: [{ name: "asset.txt", bytes }],
+      compression: "fake",
+      compressionCodecs: [fakeShrinkingCodec]
+    });
+    const toc = readToc(payload);
+
+    expect(toc.chunks[0]).toMatchObject({
+      name: "asset.txt",
+      length: 6,
+      storedLength: 2,
+      compression: "fake"
+    });
+    expect(payload.slice(PAYLOAD_HEADER_LENGTH, PAYLOAD_HEADER_LENGTH + 2)).toEqual(
+      new Uint8Array([6, 97])
+    );
+  });
+
+  it("skips compressed bytes by default when compression grows data", async () => {
+    const bytes = new Uint8Array([1, 2, 3]);
+    const payload = await createPayload({
+      files: [{ name: "asset.bin", bytes }],
+      compression: "grow",
+      compressionCodecs: [fakeGrowingCodec]
+    });
+
+    expect(readToc(payload).chunks[0]).toMatchObject({
+      length: 3,
+      storedLength: 3,
+      compression: "none"
+    });
+  });
+
+  it("stores compressed bytes when compression mode is always", async () => {
+    const bytes = new Uint8Array([1, 2, 3]);
+    const payload = await createPayload({
+      files: [{ name: "asset.bin", bytes }],
+      compression: "grow",
+      compressionMode: "always",
+      compressionCodecs: [fakeGrowingCodec]
+    });
+
+    expect(readToc(payload).chunks[0]).toMatchObject({
+      length: 3,
+      storedLength: 4,
+      compression: "grow"
+    });
+  });
+
+  it("allows per-file compression to override payload compression", async () => {
+    const payload = await createPayload({
+      files: [
+        { name: "a.txt", bytes: new TextEncoder().encode("aaaaaa"), compression: "fake" },
+        { name: "b.bin", bytes: new Uint8Array([1, 2, 3]) }
+      ],
+      compression: "none",
+      compressionCodecs: [fakeShrinkingCodec]
+    });
+
+    expect(readToc(payload).chunks.map((chunk) => chunk.compression)).toEqual(["fake", "none"]);
+  });
+
+  it("rejects missing selected compression codecs", async () => {
+    await expect(
+      createPayload({
+        files: [{ name: "asset.bin", bytes: new Uint8Array([1]) }],
+        compression: "fake"
+      })
+    ).rejects.toThrow(PayloadCompressionError);
+  });
+
   it("emits SHA-256 chunk hashes when requested", async () => {
     const payload = await createPayload({
       files: [{ name: "asset.bin", bytes: new Uint8Array([1, 2, 3]) }],
@@ -269,3 +342,26 @@ function readTocBytes(payload: Uint8Array): Uint8Array {
   const footer = readFooter(payload);
   return payload.slice(footer.tocOffset, footer.tocOffset + footer.tocLength);
 }
+
+const fakeShrinkingCodec = {
+  name: "fake",
+  async compress(bytes: Uint8Array): Promise<Uint8Array> {
+    return new Uint8Array([bytes.byteLength, bytes[0] ?? 0]);
+  },
+  async decompress(bytes: Uint8Array): Promise<Uint8Array> {
+    return new Uint8Array(bytes[0] ?? 0).fill(bytes[1] ?? 0);
+  }
+};
+
+const fakeGrowingCodec = {
+  name: "grow",
+  async compress(bytes: Uint8Array): Promise<Uint8Array> {
+    const output = new Uint8Array(bytes.byteLength + 1);
+    output[0] = 0;
+    output.set(bytes, 1);
+    return output;
+  },
+  async decompress(bytes: Uint8Array): Promise<Uint8Array> {
+    return bytes.slice(1);
+  }
+};

@@ -18,7 +18,15 @@ export type TocEncoding = typeof DEFAULT_TOC_ENCODING;
 
 export type IntegrityAlgorithm = "sha256";
 
-export type CompressionAlgorithm = typeof DEFAULT_COMPRESSION;
+export type CompressionAlgorithm = typeof DEFAULT_COMPRESSION | (string & {});
+
+export type CompressionMode = "smaller" | "always";
+
+export interface CompressionCodec {
+  readonly name: CompressionAlgorithm;
+  compress(bytes: Uint8Array): Promise<Uint8Array>;
+  decompress(bytes: Uint8Array): Promise<Uint8Array>;
+}
 
 export interface PayloadHash {
   readonly algorithm: IntegrityAlgorithm;
@@ -31,6 +39,7 @@ export interface PayloadFileInput {
   readonly mime?: string;
   readonly encoding?: string;
   readonly compression?: CompressionAlgorithm;
+  readonly compressionMode?: CompressionMode;
   readonly metadata?: JsonObject;
 }
 
@@ -39,8 +48,14 @@ export interface CreatePayloadOptions {
   readonly files: readonly PayloadFileInput[];
   readonly integrity?: IntegrityAlgorithm | false;
   readonly compression?: CompressionAlgorithm;
+  readonly compressionMode?: CompressionMode;
+  readonly compressionCodecs?: readonly CompressionCodec[];
   readonly createdBy?: string;
   readonly metadata?: JsonObject;
+}
+
+export interface OpenPayloadOptions {
+  readonly compressionCodecs?: readonly CompressionCodec[];
 }
 
 export interface PayloadManifestReference {

@@ -1,9 +1,9 @@
 import { openPayload } from "../core/index.js";
 import { PayloadEmbeddingError, PayloadLoadError } from "../format/errors.js";
-import type { OpenedPayload } from "../format/types.js";
+import type { OpenPayloadOptions, OpenedPayload } from "../format/types.js";
 import { EMBEDDED_PAYLOAD_SELECTOR, EMBEDDED_WASM_SELECTOR, decodeBase64 } from "../html/index.js";
 
-export interface LoadPayloadFromUrlOptions {
+export interface LoadPayloadFromUrlOptions extends OpenPayloadOptions {
   readonly fetch?: typeof fetch;
   readonly requestInit?: RequestInit;
 }
@@ -26,6 +26,9 @@ export interface ReadEmbeddedPayloadOptions {
   readonly selector?: string;
   readonly document?: Pick<Document, "querySelector">;
 }
+
+export interface OpenEmbeddedPayloadOptions
+  extends ReadEmbeddedPayloadOptions, OpenPayloadOptions {}
 
 export interface ReadEmbeddedWasmOptions {
   readonly selector?: string;
@@ -62,10 +65,13 @@ export async function loadPayloadFromUrl(
     throw new PayloadLoadError("Failed to read fetched ByteDist payload bytes.", { cause: error });
   }
 
-  return openPayload(new Uint8Array(buffer));
+  return openPayload(new Uint8Array(buffer), options);
 }
 
-export async function loadPayloadFromBlob(blob: Blob): Promise<OpenedPayload> {
+export async function loadPayloadFromBlob(
+  blob: Blob,
+  options: OpenPayloadOptions = {}
+): Promise<OpenedPayload> {
   let buffer: ArrayBuffer;
   try {
     buffer = await blob.arrayBuffer();
@@ -73,11 +79,14 @@ export async function loadPayloadFromBlob(blob: Blob): Promise<OpenedPayload> {
     throw new PayloadLoadError("Failed to read ByteDist payload from Blob.", { cause: error });
   }
 
-  return openPayload(new Uint8Array(buffer));
+  return openPayload(new Uint8Array(buffer), options);
 }
 
-export async function loadPayloadFromFile(file: File): Promise<OpenedPayload> {
-  return loadPayloadFromBlob(file);
+export async function loadPayloadFromFile(
+  file: File,
+  options: OpenPayloadOptions = {}
+): Promise<OpenedPayload> {
+  return loadPayloadFromBlob(file, options);
 }
 
 export function readEmbeddedPayload(options: ReadEmbeddedPayloadOptions = {}): Uint8Array {
@@ -119,9 +128,9 @@ function readEmbeddedBytes(options: {
 }
 
 export async function openEmbeddedPayload(
-  options: ReadEmbeddedPayloadOptions = {}
+  options: OpenEmbeddedPayloadOptions = {}
 ): Promise<OpenedPayload> {
-  return openPayload(readEmbeddedPayload(options));
+  return openPayload(readEmbeddedPayload(options), options);
 }
 
 export async function readChunkAsBlob(

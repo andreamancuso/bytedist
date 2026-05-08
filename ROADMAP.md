@@ -29,7 +29,7 @@ HTML template + viewer JS + WASM decoder + .bytedist
 
 ## Current Progress
 
-As of May 8, 2026, the repository has completed the framing and setup work plus the first writer, reader, integrity, Node filesystem helper, CLI, browser loader, single-file HTML embedding, and HTML bundler slices:
+As of May 8, 2026, the repository has completed the framing and setup work plus the first writer, reader, integrity, Node filesystem helper, CLI, browser loader, single-file HTML embedding, HTML bundler, and compression-adapter slices:
 
 - Stage 0 project framing is complete in `README.md`, with generic product language, target audience, license, and explicit no-DRM/no-secrets language.
 - Stage 1 repository setup is complete with npm package metadata, TypeScript, Vitest, Prettier, declaration-emitting build, package dry-run support, and GitHub Actions CI.
@@ -81,8 +81,14 @@ As of May 8, 2026, the repository has completed the framing and setup work plus 
   - optional runtime JS and WASM data blocks are supported through explicit input files and markers;
   - the command prints size summaries and requires `--force` before overwriting output;
   - embedded WASM bytes can be decoded by `bytedist/browser`.
+- Stage 11 compression adapter support is complete:
+  - core writer and reader accept caller-supplied compression codecs;
+  - `none` remains the dependency-free default;
+  - per-payload and per-chunk compression are supported;
+  - compressed chunks are skipped by default when they do not reduce size, unless `compressionMode: "always"` is used;
+  - built-in gzip/deflate/zstd codecs are deferred.
 
-The WASM reader is still future work.
+Built-in compression codecs and the WASM reader are still future work.
 
 ## Important Product Language
 
@@ -1423,6 +1429,8 @@ Progress:
 
 ## Stage 11: Compression v1
 
+Status: Adapter plumbing complete. Built-in gzip/deflate and zstd codecs are deferred.
+
 ### 11.1 Compression Interface
 
 Define a compression adapter interface.
@@ -1441,6 +1449,10 @@ Acceptance criteria:
 - `none` codec exists.
 - Tests use a fake codec.
 
+Progress:
+
+- Complete. Public compression codec options are available on create/open APIs, `none` remains built in, and tests cover fake codecs.
+
 ### 11.2 Add Optional gzip or deflate First
 
 A built-in easy compression mode may be useful before zstd.
@@ -1449,6 +1461,10 @@ Acceptance criteria:
 
 - Works in Node.
 - Browser support is either implemented or documented as limited.
+
+Progress:
+
+- Deferred. Stage 11 intentionally avoided a real compression dependency; gzip/deflate can be added later as a codec package or runtime adapter.
 
 ### 11.3 Add zstd Adapter
 
@@ -1460,6 +1476,10 @@ Acceptance criteria:
 - Reader decompresses transparently when codec exists.
 - Missing codec produces clear error.
 
+Progress:
+
+- Deferred for zstd specifically. The adapter path already supports caller-supplied codecs, transparent read-time decompression, and clear missing-codec errors.
+
 ### 11.4 Per-Chunk Compression
 
 Allow each chunk to specify its compression.
@@ -1469,6 +1489,10 @@ Acceptance criteria:
 - Already-compressed media can remain uncompressed.
 - Text/JSON chunks can be compressed.
 
+Progress:
+
+- Complete. Payload-level compression can be overridden per file, and the TOC records the actual compression used for each chunk.
+
 ### 11.5 Compression Heuristics
 
 Add optional heuristic: skip compression if it does not reduce size.
@@ -1477,6 +1501,10 @@ Acceptance criteria:
 
 - Chunk record stores actual compression used.
 - Tests cover incompressible data.
+
+Progress:
+
+- Complete. The writer stores compressed bytes only when smaller by default, records `none` when compression is skipped, and supports `compressionMode: "always"`.
 
 ## Stage 12: Format Documentation
 

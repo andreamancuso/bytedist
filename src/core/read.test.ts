@@ -343,7 +343,9 @@ describe("openPayload", () => {
       new Uint8Array([1])
     );
 
-    await expect(openPayload(payload)).rejects.toThrow(PayloadCompressionError);
+    const archive = await openPayload(payload);
+
+    await expect(archive.readBytes("asset.bin")).rejects.toThrow(PayloadCompressionError);
   });
 
   it("rejects storedLength different from length until decompression exists", async () => {
@@ -362,6 +364,73 @@ describe("openPayload", () => {
     );
 
     await expect(openPayload(payload)).rejects.toThrow(PayloadCompressionError);
+  });
+
+  it("reads compressed chunks when a matching codec is supplied", async () => {
+    const payload = await createPayload({
+      files: [{ name: "asset.txt", bytes: textEncoder.encode("aaaaaa") }],
+      compression: "fake",
+      compressionCodecs: [fakeShrinkingCodec]
+    });
+    const archive = await openPayload(payload, { compressionCodecs: [fakeShrinkingCodec] });
+
+    expect(archive.getToc().chunks[0]).toMatchObject({
+      compression: "fake",
+      length: 6,
+      storedLength: 2
+    });
+    await expect(archive.readText("asset.txt")).resolves.toBe("aaaaaa");
+  });
+
+  it("fails clearly when a compressed chunk is read without its codec", async () => {
+    const payload = await createPayload({
+      files: [{ name: "asset.txt", bytes: textEncoder.encode("aaaaaa") }],
+      compression: "fake",
+      compressionCodecs: [fakeShrinkingCodec]
+    });
+    const archive = await openPayload(payload);
+
+    await expect(archive.readBytes("asset.txt")).rejects.toThrow(PayloadCompressionError);
+  });
+
+  it("rejects compressed chunks that decompress to the wrong logical length", async () => {
+    const payload = await createPayload({
+      files: [{ name: "asset.txt", bytes: textEncoder.encode("aaaaaa") }],
+      compression: "fake",
+      compressionCodecs: [fakeShrinkingCodec]
+    });
+    const archive = await openPayload(payload, { compressionCodecs: [badLengthCodec] });
+
+    await expect(archive.readBytes("asset.txt")).rejects.toThrow(PayloadCompressionError);
+  });
+
+  it("verifies compressed chunk hashes against logical bytes", async () => {
+    const payload = await createPayload({
+      files: [{ name: "asset.txt", bytes: textEncoder.encode("aaaaaa") }],
+      compression: "fake",
+      compressionCodecs: [fakeShrinkingCodec],
+      integrity: "sha256"
+    });
+    const archive = await openPayload(payload, { compressionCodecs: [fakeShrinkingCodec] });
+
+    await expect(archive.verify()).resolves.toBeUndefined();
+  });
+
+  it("reports integrity mismatches after decompressing tampered stored bytes", async () => {
+    const payload = await createPayload({
+      files: [{ name: "asset.txt", bytes: textEncoder.encode("aaaaaa") }],
+      compression: "fake",
+      compressionCodecs: [fakeShrinkingCodec],
+      integrity: "sha256"
+    });
+    payload[PAYLOAD_HEADER_LENGTH + 1] = 98;
+
+    const archive = await openPayload(payload, { compressionCodecs: [fakeShrinkingCodec] });
+
+    await expect(archive.verify()).rejects.toMatchObject({
+      constructor: PayloadIntegrityMismatchError,
+      chunkName: "asset.txt"
+    });
   });
 });
 
@@ -455,3 +524,23 @@ function rewritePayloadToc(payload: Uint8Array, toc: PayloadToc): Uint8Array {
 
   return rewritten;
 }
+
+const fakeShrinkingCodec = {
+  name: "fake",
+  async compress(bytes: Uint8Array): Promise<Uint8Array> {
+    return new Uint8Array([bytes.byteLength, bytes[0] ?? 0]);
+  },
+  async decompress(bytes: Uint8Array): Promise<Uint8Array> {
+    return new Uint8Array(bytes[0] ?? 0).fill(bytes[1] ?? 0);
+  }
+};
+
+const badLengthCodec = {
+  name: "fake",
+  async compress(bytes: Uint8Array): Promise<Uint8Array> {
+    return bytes;
+  },
+  async decompress(): Promise<Uint8Array> {
+    return new Uint8Array();
+  }
+};

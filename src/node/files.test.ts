@@ -84,6 +84,25 @@ describe("node filesystem helpers", () => {
     await expect(archive.verify()).resolves.toBeUndefined();
   });
 
+  it("passes compression codecs through directory packing", async () => {
+    const root = await createTempDir();
+    await writeFixture(root, "asset.txt", "aaaaaa");
+
+    const payload = await packDirectory(root, {
+      compression: "fake",
+      compressionCodecs: [fakeShrinkingCodec]
+    });
+    const archive = await openPayload(payload, { compressionCodecs: [fakeShrinkingCodec] });
+
+    expect(archive.getToc().chunks[0]).toMatchObject({
+      name: "asset.txt",
+      compression: "fake",
+      length: 6,
+      storedLength: 2
+    });
+    await expect(archive.readText("asset.txt")).resolves.toBe("aaaaaa");
+  });
+
   it("rejects invalid JSON manifest files", async () => {
     const root = await createTempDir();
     await writeFixture(root, "manifest.json", "{");
@@ -165,3 +184,13 @@ async function writeFixture(
   await fs.mkdir(path.dirname(absolutePath), { recursive: true });
   await fs.writeFile(absolutePath, contents);
 }
+
+const fakeShrinkingCodec = {
+  name: "fake",
+  async compress(bytes: Uint8Array): Promise<Uint8Array> {
+    return new Uint8Array([bytes.byteLength, bytes[0] ?? 0]);
+  },
+  async decompress(bytes: Uint8Array): Promise<Uint8Array> {
+    return new Uint8Array(bytes[0] ?? 0).fill(bytes[1] ?? 0);
+  }
+};

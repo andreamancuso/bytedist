@@ -25,12 +25,18 @@ import type {
   CompressionAlgorithm,
   JsonObject,
   JsonValue,
+  OpenPayloadOptions,
   OpenedPayload,
   PayloadChunkRecord,
   PayloadHash,
   PayloadManifestReference,
   PayloadToc
 } from "../format/types.js";
+import {
+  getCompressionCodec,
+  validateCompressionCodecs,
+  validateCompressionName
+} from "./compression.js";
 import { crc32, sha256Hex } from "./hash.js";
 
 const textDecoder = new TextDecoder();
@@ -55,14 +61,19 @@ interface ParsedPayload {
   readonly footer: FooterFields;
   readonly toc: PayloadToc;
   readonly chunksByName: ReadonlyMap<string, PayloadChunkRecord>;
+  readonly options: OpenPayloadOptions;
 }
 
-export async function openPayload(bytes: Uint8Array): Promise<OpenedPayload> {
-  const parsed = parsePayload(bytes);
+export async function openPayload(
+  bytes: Uint8Array,
+  options: OpenPayloadOptions = {}
+): Promise<OpenedPayload> {
+  validateCompressionCodecs(options.compressionCodecs);
+  const parsed = parsePayload(bytes, options);
   return new InMemoryOpenedPayload(parsed);
 }
 
-function parsePayload(bytes: Uint8Array): ParsedPayload {
+function parsePayload(bytes: Uint8Array, options: OpenPayloadOptions): ParsedPayload {
   if (bytes.byteLength < PAYLOAD_HEADER_LENGTH + PAYLOAD_FOOTER_LENGTH) {
     throw new PayloadFormatError("ByteDist payload is too short to contain a header and footer.");
   }
@@ -77,7 +88,8 @@ function parsePayload(bytes: Uint8Array): ParsedPayload {
     header,
     footer,
     toc,
-    chunksByName
+    chunksByName,
+    options
   };
 }
 
@@ -223,11 +235,7 @@ function coerceChunkRecord(value: unknown, index: number): PayloadChunkRecord {
   }
 
   const compression = chunk["compression"];
-  if (compression !== DEFAULT_COMPRESSION) {
-    throw new PayloadCompressionError(
-      `Unsupported ByteDist compression algorithm: ${String(compression)}.`
-    );
-  }
+  validateCompressionName(compression);
 
   const hash = coerceHash(chunk["hash"], name);
 
@@ -258,9 +266,9 @@ function validateToc(
       throw new PayloadFormatError(`Duplicate ByteDist chunk name in TOC: ${chunk.name}.`);
     }
 
-    if (chunk.storedLength !== chunk.length) {
+    if (chunk.compression === DEFAULT_COMPRESSION && chunk.storedLength !== chunk.length) {
       throw new PayloadCompressionError(
-        `ByteDist chunk ${chunk.name} has different stored and logical lengths without decompression support.`
+        `ByteDist chunk ${chunk.name} has different stored and logical lengths without compression.`
       );
     }
 
@@ -291,11 +299,13 @@ class InMemoryOpenedPayload implements OpenedPayload {
   readonly #bytes: Uint8Array;
   readonly #toc: PayloadToc;
   readonly #chunksByName: ReadonlyMap<string, PayloadChunkRecord>;
+  readonly #options: OpenPayloadOptions;
 
   public constructor(parsed: ParsedPayload) {
     this.#bytes = parsed.bytes;
     this.#toc = parsed.toc;
     this.#chunksByName = parsed.chunksByName;
+    this.#options = parsed.options;
     void parsed.header;
     void parsed.footer;
   }
@@ -318,7 +328,7 @@ class InMemoryOpenedPayload implements OpenedPayload {
       throw new PayloadChunkNotFoundError(name);
     }
 
-    return this.#bytes.slice(chunk.offset, chunk.offset + chunk.storedLength);
+    return this.readChunkBytes(chunk);
   }
 
   public async readText(name: string): Promise<string> {
@@ -346,7 +356,7 @@ class InMemoryOpenedPayload implements OpenedPayload {
         );
       }
 
-      const bytes = this.#bytes.slice(chunk.offset, chunk.offset + chunk.storedLength);
+      const bytes = await this.readChunkBytes(chunk);
       const actualHash = await sha256Hex(bytes);
 
       if (actualHash !== chunk.hash.value) {
@@ -360,6 +370,25 @@ class InMemoryOpenedPayload implements OpenedPayload {
 
   public close(): void {
     // In-memory payloads do not own external resources.
+  }
+
+  private async readChunkBytes(chunk: PayloadChunkRecord): Promise<Uint8Array> {
+    const storedBytes = this.#bytes.slice(chunk.offset, chunk.offset + chunk.storedLength);
+
+    if (chunk.compression === DEFAULT_COMPRESSION) {
+      return storedBytes;
+    }
+
+    const codec = getCompressionCodec(chunk.compression, this.#options.compressionCodecs);
+    const logicalBytes = await codec.decompress(storedBytes);
+
+    if (logicalBytes.byteLength !== chunk.length) {
+      throw new PayloadCompressionError(
+        `ByteDist chunk ${chunk.name} decompressed to ${logicalBytes.byteLength} bytes, expected ${chunk.length}.`
+      );
+    }
+
+    return logicalBytes.slice();
   }
 }
 
