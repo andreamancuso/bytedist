@@ -65,7 +65,7 @@ it must not be used to hide secrets.
 
 ## Status
 
-Current milestone: integrity support.
+Current milestone: Node filesystem helpers.
 
 Available today:
 
@@ -86,6 +86,24 @@ Available today:
 - archive helpers for `list`, `has`, `getToc`, `readBytes`, `readText`, and `readJson`.
 - `archive.verify()` for SHA-256 chunk integrity verification;
 - footer CRC32 for TOC corruption detection.
+- `bytedist/node` helpers for packing directories and writing payload files.
+
+Node-only helpers are exported from `bytedist/node`:
+
+```ts
+import { packDirectory, writePayloadFile } from "bytedist/node";
+
+const payload = await packDirectory("./artifact", {
+  manifestPath: "manifest.json",
+  integrity: "sha256"
+});
+
+await writePayloadFile("./artifact.bytedist", payload, { overwrite: true });
+```
+
+Directory packing uses deliberately small ignore semantics: exact relative paths,
+directory prefixes ending in `/`, `*` within one path segment, and `**` across
+segments.
 
 Planned next slices are described in `ROADMAP.md`.
 

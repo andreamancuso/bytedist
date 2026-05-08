@@ -29,7 +29,7 @@ HTML template + viewer JS + WASM decoder + .bytedist
 
 ## Current Progress
 
-As of May 8, 2026, the repository has completed the framing and setup work plus the first writer, reader, and integrity implementation slices:
+As of May 8, 2026, the repository has completed the framing and setup work plus the first writer, reader, integrity, and Node filesystem helper slices:
 
 - Stage 0 project framing is complete in `README.md`, with generic product language, target audience, license, and explicit no-DRM/no-secrets language.
 - Stage 1 repository setup is complete with npm package metadata, TypeScript, Vitest, Prettier, declaration-emitting build, package dry-run support, and GitHub Actions CI.
@@ -54,6 +54,12 @@ As of May 8, 2026, the repository has completed the framing and setup work plus 
   - `archive.verify()` checks SHA-256 chunk metadata and reports failing chunk names;
   - hashless or partially hashless payloads remain readable but fail verification with a typed missing-metadata error;
   - footer CRC32 detects TOC byte corruption and is documented as non-cryptographic corruption detection.
+- Stage 6 Node filesystem helpers are complete:
+  - Node-only helpers are exported from `bytedist/node`;
+  - `packDirectory` recursively packs regular files, skips symlinks, sorts chunk names, supports manifest JSON files, and passes through integrity options;
+  - ignore support is deliberately small: exact paths, directory prefixes, `*`, and `**`;
+  - `detectMimeType` covers common web/media extensions with an octet-stream fallback;
+  - `writePayloadFile` creates parent directories and requires `overwrite: true` for existing files.
 
 CLI commands, browser runtime, HTML bundler, and WASM reader are still future work.
 
@@ -990,6 +996,18 @@ Progress:
 
 ## Stage 6: Node Filesystem Helpers
 
+Status: Complete.
+
+Implemented in:
+
+- `src/node/files.ts`
+- `src/node/mime.ts`
+- `src/node/ignore.ts`
+- `src/node/types.ts`
+- `src/node/index.ts`
+- `src/node/files.test.ts`
+- `package.json` `./node` export
+
 ### 6.1 Pack Directory
 
 Implement `packDirectory(inputDir, options)`.
@@ -1001,6 +1019,10 @@ Acceptance criteria:
 - Normalizes chunk names.
 - Rejects unsafe paths.
 
+Progress:
+
+- Complete. `packDirectory` recursively collects regular files, skips symlinks, normalizes chunk names to forward slashes, sorts deterministically, applies small documented ignore patterns, validates chunk names, and passes collected files to `createPayload`.
+
 ### 6.2 Manifest File Support
 
 Allow a manifest JSON file to be included specially.
@@ -1009,6 +1031,10 @@ Acceptance criteria:
 
 - CLI and API can designate a manifest path.
 - Manifest is stored under a predictable name by default.
+
+Progress:
+
+- Complete. `manifestPath` is read as JSON, must stay inside the input directory, is excluded from normal chunks, and is stored as generated `manifest.json`.
 
 ### 6.3 MIME Detection
 
@@ -1019,6 +1045,10 @@ Acceptance criteria:
 - Common extensions map to useful MIME types.
 - Unknown files default to `application/octet-stream`.
 
+Progress:
+
+- Complete. `detectMimeType` maps common JSON/text/web/image/audio/video/WASM extensions and defaults unknown files to `application/octet-stream`.
+
 ### 6.4 Write Payload File
 
 Implement `writePayloadFile(path, bytes)` and related helpers.
@@ -1027,6 +1057,10 @@ Acceptance criteria:
 
 - CLI can write output file.
 - Existing files require explicit overwrite or are overwritten by documented behavior.
+
+Progress:
+
+- Complete. `writePayloadFile` creates parent directories and throws for existing output files unless `overwrite: true` is passed.
 
 ## Stage 7: CLI v0
 
