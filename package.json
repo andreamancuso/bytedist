@@ -1,0 +1,55 @@
+{
+  "name": "bytedist",
+  "version": "0.0.0",
+  "description": "A WASM-friendly binary payload toolkit for offline-capable web artifacts.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/andreamancuso/bytedist.git"
+  },
+  "bugs": {
+    "url": "https://github.com/andreamancuso/bytedist/issues"
+  },
+  "homepage": "https://github.com/andreamancuso/bytedist#readme",
+  "engines": {
+    "node": ">=20"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "SECURITY.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "keywords": [
+    "binary",
+    "payload",
+    "assets",
+    "packaging",
+    "offline",
+    "wasm",
+    "browser"
+  ],
+  "devDependencies": {
+    "@vitest/coverage-v8": "^2.1.8",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

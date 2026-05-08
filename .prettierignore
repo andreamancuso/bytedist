@@ -1,0 +1,6 @@
+dist
+coverage
+node_modules
+ROADMAP.md
+*.tsbuildinfo
+*.tgz
