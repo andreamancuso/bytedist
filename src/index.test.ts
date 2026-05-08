@@ -18,9 +18,11 @@ import {
   assertFooterMagic,
   assertPayloadMagic,
   assertSupportedFormatVersion,
+  assertValidChunkName,
   isFooterMagic,
   isPayloadMagic,
   isSupportedFormatVersion,
+  isValidChunkName,
   type CreatePayloadOptions,
   type JsonValue,
   type OpenedPayload,
@@ -89,6 +91,17 @@ describe("format validation", () => {
   it("rejects unsupported format versions", () => {
     expect(isSupportedFormatVersion(1)).toBe(false);
     expect(() => assertSupportedFormatVersion(1)).toThrow(PayloadVersionError);
+  });
+
+  it("accepts valid chunk names", () => {
+    expect(isValidChunkName("manifest.json")).toBe(true);
+    expect(isValidChunkName("assets/image.webp")).toBe(true);
+    expect(() => assertValidChunkName("assets/image.webp")).not.toThrow();
+  });
+
+  it("rejects invalid chunk names", () => {
+    expect(isValidChunkName("../secret.txt")).toBe(false);
+    expect(() => assertValidChunkName("../secret.txt")).toThrow(PayloadFormatError);
   });
 });
 

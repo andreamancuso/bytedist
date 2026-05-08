@@ -65,7 +65,7 @@ it must not be used to hide secrets.
 
 ## Status
 
-Current milestone: format constants and public types.
+Current milestone: minimal in-memory payload writer.
 
 Available today:
 
@@ -79,6 +79,9 @@ Available today:
 - payload format version constant: `0`;
 - low-level format validation helpers;
 - public error classes and planned API types.
+- `createPayload` for in-memory v0 payload creation;
+- JSON TOC and footer metadata writing;
+- optional per-chunk SHA-256 hash metadata.
 
 Planned next slices are described in `ROADMAP.md`.
 

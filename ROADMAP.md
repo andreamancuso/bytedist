@@ -29,7 +29,7 @@ HTML template + viewer JS + WASM decoder + .bytedist
 
 ## Current Progress
 
-As of May 8, 2026, the repository has completed the framing and setup work needed before payload implementation:
+As of May 8, 2026, the repository has completed the framing and setup work plus the first writer implementation slice:
 
 - Stage 0 project framing is complete in `README.md`, with generic product language, target audience, license, and explicit no-DRM/no-secrets language.
 - Stage 1 repository setup is complete with npm package metadata, TypeScript, Vitest, Prettier, declaration-emitting build, package dry-run support, and GitHub Actions CI.
@@ -39,8 +39,14 @@ As of May 8, 2026, the repository has completed the framing and setup work neede
   - payload format version is `0`;
   - public TypeScript types, format validation helpers, and error classes are exported from `src/index.ts`;
   - tests cover valid/invalid magic bytes, unsupported versions, and error identity.
+- Stage 3 minimal in-memory payload writer is complete:
+  - `createPayload` writes header, chunk data, JSON TOC, and footer into a `Uint8Array`;
+  - generated manifests are written as `manifest.json`;
+  - empty chunks are supported;
+  - duplicate and unsafe chunk names are rejected;
+  - optional per-chunk SHA-256 hash metadata is emitted when requested.
 
-The payload writer, reader, integrity implementation, CLI commands, browser runtime, HTML bundler, and WASM reader are still future work.
+The payload reader, full integrity verification API, CLI commands, browser runtime, HTML bundler, and WASM reader are still future work.
 
 ## Important Product Language
 
@@ -732,6 +738,17 @@ Progress:
 
 ## Stage 3: Minimal In-Memory Payload Writer
 
+Status: Complete.
+
+Implemented in:
+
+- `src/core/pack.ts`
+- `src/core/layout.ts`
+- `src/core/hash.ts`
+- `src/core/index.ts`
+- `src/core/pack.test.ts`
+- `src/format/validation.ts`
+
 ### 3.1 Write Header
 
 Implement binary header writing.
@@ -740,6 +757,10 @@ Acceptance criteria:
 
 - Header contains magic, version, header length, and flags.
 - Header can be parsed independently.
+
+Progress:
+
+- Complete. The writer emits a 24-byte little-endian header with `BDISTPAY`, version `0`, header length `24`, flags `0`, and reserved `0`.
 
 ### 3.2 Write Chunk Data
 
@@ -751,6 +772,10 @@ Acceptance criteria:
 - Empty chunks are either supported or rejected explicitly.
 - Duplicate names are rejected.
 
+Progress:
+
+- Complete. Multiple chunks are written in order, empty chunks are supported, duplicate names are rejected, and unsafe names are rejected.
+
 ### 3.3 Write JSON TOC
 
 Implement a v0 JSON TOC placed near the end of the file.
@@ -759,6 +784,10 @@ Acceptance criteria:
 
 - TOC includes chunk names, offsets, lengths, MIME types, compression flags, and hashes if enabled.
 - TOC can be found using the footer.
+
+Progress:
+
+- Complete. The writer emits JSON TOC v0 before the footer, including chunk offsets, lengths, stored lengths, MIME, encoding, compression, metadata, and optional SHA-256 hash records.
 
 ### 3.4 Write Footer
 
@@ -769,6 +798,11 @@ Acceptance criteria:
 - Reader can locate the TOC from the footer.
 - Tests cover corrupted footer scenarios.
 
+Progress:
+
+- Complete for writer output. The writer emits a 40-byte little-endian footer with `BDISTEND`, version `0`, TOC offset, TOC length, payload length, and reserved checksum `0`.
+- Tests inspect the footer and cover corrupted footer magic with the format helper. Full reader offset validation remains Stage 4.
+
 ### 3.5 Create `createPayload`
 
 Expose the first public packer API.
@@ -778,6 +812,10 @@ Acceptance criteria:
 - A caller can pass a manifest and files.
 - The function returns `Uint8Array` or `ArrayBuffer`.
 - Unit tests create valid sample payloads.
+
+Progress:
+
+- Complete. `createPayload` accepts a manifest and files, generates `manifest.json` when requested, returns `Uint8Array`, and is covered by unit tests.
 
 ## Stage 4: Minimal Reader
 

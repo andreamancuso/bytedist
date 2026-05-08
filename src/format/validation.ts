@@ -56,3 +56,34 @@ export function assertSupportedFormatVersion(version: number): void {
     throw new PayloadVersionError(version);
   }
 }
+
+export function isValidChunkName(name: string): boolean {
+  if (name.length === 0) {
+    return false;
+  }
+
+  if (name !== name.normalize("NFC")) {
+    return false;
+  }
+
+  if (name.includes("\0") || name.includes("\\")) {
+    return false;
+  }
+
+  if (name.startsWith("/") || name.endsWith("/")) {
+    return false;
+  }
+
+  if (/^[A-Za-z]:/.test(name)) {
+    return false;
+  }
+
+  const segments = name.split("/");
+  return segments.every((segment) => segment.length > 0 && segment !== "..");
+}
+
+export function assertValidChunkName(name: string): void {
+  if (!isValidChunkName(name)) {
+    throw new PayloadFormatError(`Invalid ByteDist chunk name: ${name}.`);
+  }
+}
