@@ -207,11 +207,11 @@ Available today:
 - CLI commands for `pack`, `inspect`, `verify`, and `bundle-html`.
 - Adapter-based compression plumbing.
 - Format documentation in [`docs/format.md`](docs/format.md).
+- Experimental WASM reader/validator notes in [`docs/wasm.md`](docs/wasm.md).
 
 Planned next:
 
-- runnable examples;
-- WASM reader/validator for hardened standalone artifacts;
+- stable WASM runtime wrapper for hardened standalone artifacts;
 - built-in compression adapters;
 - broader browser compatibility notes.
 

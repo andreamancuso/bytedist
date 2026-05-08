@@ -36,10 +36,10 @@ under a clearly documented key and trust model.
 
 ## WASM
 
-WASM support is planned as a narrow reader/validator path for hardened standalone
-artifacts. WASM is not a security boundary. It can raise implementation friction
-and help keep parsing behavior consistent, but it does not make assets
-unextractable.
+WASM support is an experimental narrow reader/validator path for hardened
+standalone artifacts. WASM is not a security boundary. It can raise
+implementation friction and help keep parsing behavior consistent, but it does
+not make assets unextractable.
 
 ## Reporting Vulnerabilities
 

@@ -20,6 +20,7 @@ describe("public documentation", () => {
     expect(readme).toContain("npm run example:all");
     expect(readme).toContain("not DRM");
     expect(readme).toContain("must not be used to hide secrets");
+    expect(readme).toContain("Experimental WASM reader/validator notes");
 
     for (const comparison of ["ZIP", "Emscripten", "Vite", "Web Bundles", "glTF/GLB"]) {
       expect(readme).toContain(comparison);
@@ -50,5 +51,15 @@ describe("public documentation", () => {
     expect(formatDoc).toContain("logical uncompressed chunk bytes");
     expect(formatDoc).toContain("compression codec");
     expect(formatDoc).toContain("pre-1.0");
+  });
+
+  it("documents the experimental WASM reader surface", async () => {
+    const wasmDoc = await fs.readFile(new URL("../docs/wasm.md", import.meta.url), "utf8");
+
+    expect(wasmDoc).toContain("not a security boundary");
+    expect(wasmDoc).toContain("npm run wasm:build");
+    expect(wasmDoc).toContain("npm run wasm:test");
+    expect(wasmDoc).toContain("TypeScript reader remains the canonical");
+    expect(wasmDoc).toContain("internal and may change");
   });
 });

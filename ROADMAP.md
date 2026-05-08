@@ -29,7 +29,7 @@ HTML template + viewer JS + WASM decoder + .bytedist
 
 ## Current Progress
 
-As of May 8, 2026, the repository has completed the framing and setup work plus the first writer, reader, integrity, Node filesystem helper, CLI, browser loader, single-file HTML embedding, HTML bundler, and compression-adapter slices:
+As of May 8, 2026, the repository has completed the framing and setup work plus the first writer, reader, integrity, Node filesystem helper, CLI, browser loader, single-file HTML embedding, HTML bundler, compression-adapter, format-docs, README, example, and experimental WASM-reader slices:
 
 - Stage 0 project framing is complete in `README.md`, with generic product language, target audience, license, and explicit no-DRM/no-secrets language.
 - Stage 1 repository setup is complete with npm package metadata, TypeScript, Vitest, Prettier, declaration-emitting build, package dry-run support, and GitHub Actions CI.
@@ -87,8 +87,20 @@ As of May 8, 2026, the repository has completed the framing and setup work plus 
   - per-payload and per-chunk compression are supported;
   - compressed chunks are skipped by default when they do not reduce size, unless `compressionMode: "always"` is used;
   - built-in gzip/deflate/zstd codecs are deferred.
+- Stage 12 format documentation is complete:
+  - `docs/format.md` documents the v0 header, footer, JSON TOC, chunk naming, integrity, compression metadata, and compatibility posture.
+- Stage 13 README polish is complete:
+  - the public README describes ByteDist generically, documents basic API/CLI usage, and keeps no-DRM/no-secrets language visible.
+- Stage 14 runnable examples are complete:
+  - repo-only examples cover basic payloads, browser gallery loading, single-file HTML, and an interactive document-style payload;
+  - generated example outputs are ignored by Git and excluded from the npm package.
+- Stage 15 experimental WASM reader support is complete:
+  - C++/Emscripten reader source and Docker build scripts live under `wasm/`;
+  - `npm run wasm:build` produces ignored WASM artifacts under `wasm/dist/`;
+  - `npm run wasm:test` compares valid payload and invalid-payload behavior against shared TypeScript-created fixtures;
+  - the current WASM path validates structure and reads uncompressed chunks, while SHA-256 verification and the stable JS wrapper remain Stage 16 work.
 
-Built-in compression codecs and the WASM reader are still future work.
+Built-in compression codecs, the stable WASM runtime wrapper, and broader browser compatibility notes are still future work.
 
 ## Important Product Language
 
@@ -1655,6 +1667,8 @@ Progress:
 
 ## Stage 15: MVP WASM Reader and Validator
 
+Status: Complete for the experimental MVP reader. The generated WASM artifacts are ignored and the ABI remains internal until Stage 16 defines the stable runtime wrapper.
+
 ### 15.1 Define Why WASM Exists
 
 Document whether WASM is for:
@@ -1670,6 +1684,10 @@ Acceptance criteria:
 
 - WASM is not framed as security magic.
 - Host-application hardening docs explain that WASM raises casual-analysis friction but does not prevent extraction.
+
+Progress:
+
+- Complete. `docs/wasm.md` and `SECURITY.md` describe WASM as validation and implementation-friction tooling, not as a security boundary or protection mechanism.
 
 ### 15.2 Decide Implementation Language
 
@@ -1687,6 +1705,10 @@ Acceptance criteria:
 - Decision is documented.
 - Build complexity is understood.
 
+Progress:
+
+- Complete. Stage 15 uses C++ with Emscripten through Docker, pinned to `emscripten/emsdk:5.0.2`, with `npm run wasm:build` as the repo entrypoint.
+
 ### 15.3 Create MVP WASM Reader
 
 Implement a narrow decoder that reads the header, footer, TOC, chunk metadata, and selected chunk bytes.
@@ -1699,6 +1721,10 @@ Acceptance criteria:
 - It returns structured errors or error codes.
 - It can run from an embedded single-file HTML artifact.
 
+Progress:
+
+- Complete for the narrow internal ABI. The module validates header/footer/TOC structure and CRC32, lists chunk names, reads selected uncompressed chunks, and reports numeric error codes plus messages. Embedded runtime integration remains Stage 16.
+
 ### 15.4 Avoid Full Rewrite Too Early
 
 Keep TypeScript reader as reference implementation.
@@ -1708,6 +1734,10 @@ Acceptance criteria:
 - TS reader remains canonical until WASM is proven useful.
 - Test corpus runs against both readers when possible.
 - Host-application MVP can use WASM in the browser while tests can compare behavior against the TypeScript reader.
+
+Progress:
+
+- Complete for Stage 15. WASM tests create payloads with the TypeScript writer, compare listing/read behavior with the TypeScript reader, and cover invalid payload fixtures. The TypeScript reader remains the public reference implementation.
 
 ## Stage 16: WASM Runtime API
 
