@@ -15,17 +15,21 @@ describe("public documentation", () => {
     expect(readme).toContain("createPayload");
     expect(readme).toContain("openPayload");
     expect(readme).toContain("openPayloadFromUrlRange");
+    expect(readme).toContain("bytedistPlugin");
+    expect(readme).toContain("bytedist/vite");
     expect(readme).toContain("single-file");
     expect(readme).toContain("npm run example:basic");
     expect(readme).toContain("npm run example:browser-gallery");
     expect(readme).toContain("npm run example:single-file-html");
     expect(readme).toContain("npm run example:interactive-document");
+    expect(readme).toContain("npm run example:vite");
     expect(readme).toContain("npm run example:all");
     expect(readme).toContain("not DRM");
     expect(readme).toContain("must not be used to hide secrets");
     expect(readme).toContain("Experimental WASM reader/validator wrapper");
     expect(readme).toContain("Browser loading notes");
     expect(readme).toContain("Signing and provenance notes");
+    expect(readme).toContain("Vite integration notes");
 
     for (const comparison of ["ZIP", "Emscripten", "Vite", "Web Bundles", "glTF/GLB"]) {
       expect(readme).toContain(comparison);
@@ -71,6 +75,17 @@ describe("public documentation", () => {
     expect(signingDoc).toContain("bytedist verify-signature");
     expect(signingDoc).toContain("private keys");
     expect(signingDoc).toContain("not DRM");
+  });
+
+  it("documents Vite integration behavior", async () => {
+    const viteDoc = await fs.readFile(new URL("../docs/vite.md", import.meta.url), "utf8");
+
+    expect(viteDoc).toContain("bytedist/vite");
+    expect(viteDoc).toContain("bytedistPlugin");
+    expect(viteDoc).toContain("virtual:bytedist/payload");
+    expect(viteDoc).toContain("BYTEDIST_PAYLOAD");
+    expect(viteDoc).toContain("build-only");
+    expect(viteDoc).toContain("not DRM");
   });
 
   it("documents the experimental WASM reader surface", async () => {

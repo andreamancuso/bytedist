@@ -18,6 +18,7 @@ blobs make an export harder to ship, inspect, or maintain.
 - Verifies per-chunk SHA-256 metadata and TOC CRC32 corruption checks.
 - Signs and verifies detached provenance envelopes with public-key signatures.
 - Packs directories and writes payload files through `bytedist/node`.
+- Integrates with Vite builds through the optional `bytedist/vite` plugin.
 - Provides CLI commands for `pack`, `inspect`, `verify`, `sign`,
   `verify-signature`, and `bundle-html`.
 - Embeds payload bytes into non-executable single-file HTML data blocks.
@@ -138,6 +139,23 @@ const html = embedPayloadInHtml(templateHtml, payloadBytes);
 const archive = await openEmbeddedPayload();
 ```
 
+Pack and embed a payload during a Vite build:
+
+```ts
+import { defineConfig } from "vite";
+import { bytedistPlugin } from "bytedist/vite";
+
+export default defineConfig({
+  plugins: [
+    bytedistPlugin({
+      input: "./artifact",
+      manifestPath: "manifest.json",
+      embed: true
+    })
+  ]
+});
+```
+
 Sign and verify a detached provenance envelope:
 
 ```ts
@@ -159,11 +177,13 @@ npm run example:basic
 npm run example:browser-gallery
 npm run example:single-file-html
 npm run example:interactive-document
+npm run example:vite
 npm run example:all
 ```
 
 The examples cover Node pack/read/verify, a browser file-input gallery, generated
-single-file HTML, and a mixed-resource interactive document payload.
+single-file HTML, a mixed-resource interactive document payload, and a
+framework-neutral Vite build.
 
 ## Compression
 
@@ -209,7 +229,7 @@ browser-runtime-friendly payloads for application-owned manifests and resources.
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | ZIP/TAR                  | General archive formats. ByteDist is narrower: it has a runtime TOC, web-oriented reader APIs, payload verification, and single-file HTML embedding helpers. |
 | Emscripten file packages | Usually tied to an Emscripten runtime/filesystem model. ByteDist is a standalone payload format and does not require MEMFS.                                  |
-| Vite single-file plugins | Usually inline bundler output. ByteDist keeps application resources behind an explicit binary payload boundary that can be inspected and verified.           |
+| Vite single-file plugins | Usually inline bundler output. ByteDist can integrate with Vite while keeping application resources behind an explicit binary payload boundary.              |
 | Web Bundles              | A browser/platform packaging proposal. ByteDist is application-owned data loaded by an explicit runtime reader.                                              |
 | glTF/GLB                 | A specialized 3D asset container. ByteDist is generic and leaves application schemas to host applications.                                                   |
 
@@ -236,10 +256,12 @@ Available today:
 - HTTP range loading for external browser payloads.
 - CLI commands for `pack`, `inspect`, `verify`, and `bundle-html`.
 - Detached payload signing and signature verification.
+- Optional Vite build plugin in `bytedist/vite`.
 - Adapter-based compression plumbing.
 - Format documentation in [`docs/format.md`](docs/format.md).
 - Browser loading notes in [`docs/browser.md`](docs/browser.md).
 - Signing and provenance notes in [`docs/signing.md`](docs/signing.md).
+- Vite integration notes in [`docs/vite.md`](docs/vite.md).
 - Experimental WASM reader/validator wrapper in `bytedist/wasm`.
 - WASM runtime notes in [`docs/wasm.md`](docs/wasm.md).
 
@@ -259,6 +281,7 @@ npm run format:check
 npm run toc:measure
 npm run wasm:build
 npm run wasm:test
+npm run example:vite
 npm pack --dry-run
 ```
 

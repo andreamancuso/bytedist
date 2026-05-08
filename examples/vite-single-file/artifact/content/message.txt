@@ -1,0 +1,1 @@
+This text was packed by the ByteDist Vite plugin and embedded into the built HTML.
