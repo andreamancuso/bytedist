@@ -3,6 +3,12 @@
 ByteDist is a generic, open-source, WASM-friendly binary payload toolkit for
 offline-capable web artifacts.
 
+ByteDist is designed for web artifacts that need a cleaner packaging boundary
+than loose files, large inline JSON, or visible base64 media blobs. A host
+application will be able to pack an application manifest and binary resources
+into a runtime-readable payload that can be loaded from Node.js, modern
+browsers, or a self-contained HTML export.
+
 The project is intended to provide:
 
 - a versioned binary payload format;
@@ -16,6 +22,24 @@ The project is intended to provide:
 This repository is at the package-skeleton stage. The payload format and runtime
 APIs are intentionally not implemented yet.
 
+## Project Brief
+
+ByteDist aims to make offline-capable web exports easier to package, inspect,
+verify, and embed without tying the payload format to any one application,
+framework, renderer, or bundler.
+
+Expected use cases include:
+
+- static exports for browser-based editors and local-first applications;
+- interactive documents that need text, JSON, images, audio, or binary resources;
+- kiosk, demo, game, visualization, and training artifacts that need to open
+  without a server.
+
+ByteDist treats application-specific data as caller-owned. The library should
+provide the packaging boundary, integrity hooks, runtime reader APIs, and
+single-file HTML helpers; the host application remains responsible for its own
+manifest schema, sanitization, rendering, and policy decisions.
+
 ## Who Is This For?
 
 ByteDist is for authors of browser-based tools, local-first applications,
@@ -23,9 +47,8 @@ interactive documents, static export generators, offline demos, kiosks, and web
 games that need a clean packaging boundary for application manifests and binary
 resources.
 
-Host applications should be able to create application-specific manifests and
-resource chunks without ByteDist depending on any one framework, renderer,
-bundler, or content model.
+Host applications should be able to create application-specific manifests and resource chunks
+without ByteDist depending on any one framework, renderer, bundler, or content model.
 
 ## What ByteDist Is Not
 
@@ -60,6 +83,7 @@ npm test
 npm run typecheck
 npm run format
 npm run format:check
+npm pack --dry-run
 ```
 
 ## License
