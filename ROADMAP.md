@@ -29,7 +29,7 @@ HTML template + viewer JS + WASM decoder + .bytedist
 
 ## Current Progress
 
-As of May 8, 2026, the repository has completed the framing and setup work plus the first writer, reader, integrity, and Node filesystem helper slices:
+As of May 8, 2026, the repository has completed the framing and setup work plus the first writer, reader, integrity, Node filesystem helper, and CLI slices:
 
 - Stage 0 project framing is complete in `README.md`, with generic product language, target audience, license, and explicit no-DRM/no-secrets language.
 - Stage 1 repository setup is complete with npm package metadata, TypeScript, Vitest, Prettier, declaration-emitting build, package dry-run support, and GitHub Actions CI.
@@ -60,8 +60,14 @@ As of May 8, 2026, the repository has completed the framing and setup work plus 
   - ignore support is deliberately small: exact paths, directory prefixes, `*`, and `**`;
   - `detectMimeType` covers common web/media extensions with an octet-stream fallback;
   - `writePayloadFile` creates parent directories and requires `overwrite: true` for existing files.
+- Stage 7 CLI v0 is complete:
+  - the `bytedist` binary exposes `pack`, `inspect`, and `verify`;
+  - `pack` defaults to SHA-256 integrity and requires `--force` before overwriting output;
+  - `inspect` prints stable human-readable payload and chunk metadata;
+  - `verify` exits nonzero for invalid, tampered, or hashless payloads and reports failing chunks where available;
+  - public `extract` remains absent.
 
-CLI commands, browser runtime, HTML bundler, and WASM reader are still future work.
+Browser runtime, HTML bundler, and WASM reader are still future work.
 
 ## Important Product Language
 
@@ -1064,6 +1070,14 @@ Progress:
 
 ## Stage 7: CLI v0
 
+Status: Complete.
+
+Implemented in:
+
+- `src/cli/index.ts`
+- `src/cli/index.test.ts`
+- `package.json` `bin`
+
 ### 7.1 CLI Entrypoint
 
 Create `bytedist` binary.
@@ -1072,6 +1086,10 @@ Acceptance criteria:
 
 - `bytedist --help` works.
 - Unknown commands fail with a clear message.
+
+Progress:
+
+- Complete. The dependency-free `bytedist` binary prints help and reports unknown commands clearly.
 
 ### 7.2 `pack` Command
 
@@ -1088,6 +1106,10 @@ Acceptance criteria:
 - Supports output path.
 - Prints summary.
 
+Progress:
+
+- Complete. `pack` supports input directory, `--out`, `--manifest`, repeated `--ignore`, `--force`, and `--no-integrity`. It defaults to SHA-256 integrity and prints a stable summary.
+
 ### 7.3 `inspect` Command
 
 Implement:
@@ -1103,6 +1125,10 @@ Acceptance criteria:
 - Prints total size.
 - Lists chunks with size, MIME, compression, and hash status.
 
+Progress:
+
+- Complete. `inspect` prints stable human-readable payload metadata and one line per chunk.
+
 ### 7.4 `verify` Command
 
 Implement:
@@ -1117,6 +1143,10 @@ Acceptance criteria:
 - Exits nonzero for invalid payload.
 - Reports failing chunks.
 
+Progress:
+
+- Complete. `verify` exits `0` for valid hashed payloads, exits nonzero for invalid, hashless, or tampered payloads, and reports failing chunks when available.
+
 ### 7.5 Defer Public `extract`
 
 Do not expose a public extraction command in the first MVP.
@@ -1129,6 +1159,10 @@ Acceptance criteria:
 - Tests can still inspect fixture contents without a public extraction command.
 - Documentation explains that public extraction tooling is post-MVP.
 
+Progress:
+
+- Complete. `extract` is not implemented, not listed in help, and documented as post-MVP.
+
 ### 7.6 CLI Tests
 
 Add integration tests for CLI commands.
@@ -1137,6 +1171,10 @@ Acceptance criteria:
 
 - Tests run in CI.
 - Tests do not require global installation.
+
+Progress:
+
+- Complete. CLI tests call the command runner directly and cover help, errors, pack, inspect, verify, overwrite handling, ignores, hashless payloads, and tampered payloads.
 
 ## Stage 8: Browser Loader
 

@@ -65,7 +65,7 @@ it must not be used to hide secrets.
 
 ## Status
 
-Current milestone: Node filesystem helpers.
+Current milestone: CLI v0.
 
 Available today:
 
@@ -87,6 +87,18 @@ Available today:
 - `archive.verify()` for SHA-256 chunk integrity verification;
 - footer CRC32 for TOC corruption detection.
 - `bytedist/node` helpers for packing directories and writing payload files.
+- `bytedist` CLI commands for `pack`, `inspect`, and `verify`.
+
+CLI:
+
+```sh
+bytedist pack ./artifact --manifest manifest.json --out artifact.bytedist
+bytedist inspect artifact.bytedist
+bytedist verify artifact.bytedist
+```
+
+The first CLI intentionally does not expose an `extract` command. Public
+extraction tooling is post-MVP.
 
 Node-only helpers are exported from `bytedist/node`:
 
