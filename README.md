@@ -19,10 +19,10 @@ The project is intended to provide:
 - narrow WASM reader/validator support for hardened standalone artifacts;
 - CLI tooling for packing, inspecting, verifying, and bundling HTML artifacts.
 
-This repository is at the early format-surface stage. It exports initial format
-constants, public TypeScript types, validation helpers, and error classes. The
-payload writer, reader, CLI, browser runtime, and WASM reader are intentionally
-not implemented yet.
+This repository is at the early MVP stage. It exports the initial payload
+format, in-memory writer and reader APIs, Node filesystem helpers, CLI commands,
+and browser loading helpers. Single-file HTML embedding and the WASM reader are
+planned next.
 
 ## Project Brief
 
@@ -65,7 +65,7 @@ it must not be used to hide secrets.
 
 ## Status
 
-Current milestone: CLI v0.
+Current milestone: browser loader.
 
 Available today:
 
@@ -88,6 +88,7 @@ Available today:
 - footer CRC32 for TOC corruption detection.
 - `bytedist/node` helpers for packing directories and writing payload files.
 - `bytedist` CLI commands for `pack`, `inspect`, and `verify`.
+- `bytedist/browser` helpers for URL, Blob, File, and object URL loading.
 
 CLI:
 
@@ -116,6 +117,21 @@ await writePayloadFile("./artifact.bytedist", payload, { overwrite: true });
 Directory packing uses deliberately small ignore semantics: exact relative paths,
 directory prefixes ending in `/`, `*` within one path segment, and `**` across
 segments.
+
+Browser helpers are exported from `bytedist/browser`:
+
+```ts
+import { createChunkObjectUrl, loadPayloadFromUrl } from "bytedist/browser";
+
+const archive = await loadPayloadFromUrl("artifact.bytedist");
+await archive.verify();
+
+const image = await createChunkObjectUrl(archive, "images/preview.png");
+document.querySelector("img")?.setAttribute("src", image.url);
+
+// Revoke when the resource is no longer displayed.
+image.revoke();
+```
 
 Planned next slices are described in `ROADMAP.md`.
 

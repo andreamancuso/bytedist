@@ -29,7 +29,7 @@ HTML template + viewer JS + WASM decoder + .bytedist
 
 ## Current Progress
 
-As of May 8, 2026, the repository has completed the framing and setup work plus the first writer, reader, integrity, Node filesystem helper, and CLI slices:
+As of May 8, 2026, the repository has completed the framing and setup work plus the first writer, reader, integrity, Node filesystem helper, CLI, and browser loader slices:
 
 - Stage 0 project framing is complete in `README.md`, with generic product language, target audience, license, and explicit no-DRM/no-secrets language.
 - Stage 1 repository setup is complete with npm package metadata, TypeScript, Vitest, Prettier, declaration-emitting build, package dry-run support, and GitHub Actions CI.
@@ -66,8 +66,13 @@ As of May 8, 2026, the repository has completed the framing and setup work plus 
   - `inspect` prints stable human-readable payload and chunk metadata;
   - `verify` exits nonzero for invalid, tampered, or hashless payloads and reports failing chunks where available;
   - public `extract` remains absent.
+- Stage 8 browser loader is complete:
+  - browser-only helpers are exported from `bytedist/browser`;
+  - `loadPayloadFromUrl` fetches and opens payloads with typed load errors;
+  - `loadPayloadFromBlob` and `loadPayloadFromFile` support file inputs and drag-and-drop workflows;
+  - chunk Blob and object URL helpers support media display and explicit revocation.
 
-Browser runtime, HTML bundler, and WASM reader are still future work.
+Single-file HTML embedding, HTML bundler, and WASM reader are still future work.
 
 ## Important Product Language
 
@@ -1178,6 +1183,10 @@ Progress:
 
 ## Stage 8: Browser Loader
 
+Status: Complete.
+
+Implemented in `src/browser/index.ts`, exported as `bytedist/browser`, and tested in `src/browser/index.test.ts`.
+
 ### 8.1 Browser-Compatible Reader
 
 Ensure `openPayload` works in browser environments.
@@ -1186,6 +1195,10 @@ Acceptance criteria:
 
 - No Node-only imports in browser path.
 - Browser tests or demo prove loading works.
+
+Progress:
+
+- Complete. The browser entrypoint reuses the core TypeScript reader and contains no Node-only imports. Tests exercise browser helper behavior.
 
 ### 8.2 Fetch Loader
 
@@ -1201,6 +1214,10 @@ Acceptance criteria:
 - Opens the payload.
 - Reports HTTP/load failures clearly.
 
+Progress:
+
+- Complete. `loadPayloadFromUrl` accepts an optional injected `fetch`, passes request options through, opens fetched bytes, and wraps fetch/read/HTTP failures in `PayloadLoadError`.
+
 ### 8.3 Blob/File Loader
 
 Implement browser `File` and `Blob` loading helpers.
@@ -1210,6 +1227,10 @@ Acceptance criteria:
 - Works with file input elements.
 - Works with drag-and-drop files.
 
+Progress:
+
+- Complete. `loadPayloadFromBlob` and `loadPayloadFromFile` read `arrayBuffer()` bytes and return `OpenedPayload` instances.
+
 ### 8.4 Object URL Helper
 
 Optionally expose a helper to read bytes and create object URLs for media.
@@ -1218,6 +1239,10 @@ Acceptance criteria:
 
 - Image/audio demo can display resources from payload.
 - Object URLs can be revoked.
+
+Progress:
+
+- Complete. `readChunkAsBlob` uses TOC MIME metadata by default, and `createChunkObjectUrl` returns a URL, Blob, and idempotent `revoke()` helper.
 
 ## Stage 9: Single-File HTML Embedding
 

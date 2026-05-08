@@ -50,4 +50,6 @@ export class PayloadCompressionError extends ByteDistError {}
 
 export class PayloadEmbeddingError extends ByteDistError {}
 
+export class PayloadLoadError extends ByteDistError {}
+
 export class PayloadUnsupportedFeatureError extends ByteDistError {}
