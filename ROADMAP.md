@@ -1508,6 +1508,8 @@ Progress:
 
 ## Stage 12: Format Documentation
 
+Status: Complete.
+
 ### 12.1 Write `docs/format.md`
 
 Document the binary layout in detail.
@@ -1520,6 +1522,10 @@ Acceptance criteria:
 - Chunk naming documented.
 - Versioning documented.
 
+Progress:
+
+- Complete. `docs/format.md` documents the current version `0` layout, header, footer, JSON TOC, chunk records, chunk naming, compression, integrity, and versioning.
+
 ### 12.2 Add Hex Example
 
 Include a tiny sample payload diagram.
@@ -1527,6 +1533,10 @@ Include a tiny sample payload diagram.
 Acceptance criteria:
 
 - Docs help a developer debug a corrupted payload.
+
+Progress:
+
+- Complete. `docs/format.md` includes an annotated payload sketch and a debugging checklist for magic bytes, footer fields, TOC ranges, CRC32, hashes, and missing codecs.
 
 ### 12.3 Document Compatibility Guarantees
 
@@ -1536,6 +1546,10 @@ Acceptance criteria:
 
 - Pre-1.0 compatibility rules are clear.
 - Users know whether payloads are expected to survive version upgrades.
+
+Progress:
+
+- Complete. `docs/format.md` states that payload format version `0` is pre-1.0, unsupported versions are rejected, and callers should keep source assets available for repacking.
 
 ## Stage 13: Public README
 

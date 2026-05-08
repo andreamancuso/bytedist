@@ -41,6 +41,7 @@
   },
   "files": [
     "dist",
+    "docs",
     "README.md",
     "SECURITY.md",
     "LICENSE"

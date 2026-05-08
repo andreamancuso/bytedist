@@ -182,6 +182,8 @@ const archive = await openPayload(payload, {
 });
 ```
 
+The current payload layout is documented in [`docs/format.md`](docs/format.md).
+
 Planned next slices are described in `ROADMAP.md`.
 
 ## Scripts
