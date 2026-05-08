@@ -286,6 +286,35 @@ describe("openPayload", () => {
     );
   });
 
+  it("rejects missing TOC encoding", async () => {
+    await expect(
+      openPayload(
+        buildPayloadWithToc(
+          {
+            version: 0,
+            chunks: [chunkRecord("asset.bin", PAYLOAD_HEADER_LENGTH, 1)]
+          },
+          new Uint8Array([1])
+        )
+      )
+    ).rejects.toThrow(PayloadFormatError);
+  });
+
+  it("rejects unsupported TOC encodings", async () => {
+    await expect(
+      openPayload(
+        buildPayloadWithToc(
+          {
+            version: 0,
+            tocEncoding: "binary",
+            chunks: [chunkRecord("asset.bin", PAYLOAD_HEADER_LENGTH, 1)]
+          },
+          new Uint8Array([1])
+        )
+      )
+    ).rejects.toThrow(PayloadFormatError);
+  });
+
   it("rejects duplicate TOC chunk names", async () => {
     const payload = buildPayloadWithToc(
       {

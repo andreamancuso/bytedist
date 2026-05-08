@@ -104,8 +104,13 @@ As of May 8, 2026, the repository has completed the framing and setup work plus 
   - wrapper archives follow the `OpenedPayload` shape and map native failures to ByteDist error classes;
   - embedded payload and embedded WASM data blocks can initialize the WASM path;
   - TypeScript fallback is explicit opt-in.
+- Stage 17 TOC evaluation is complete:
+  - `npm run toc:measure` reports JSON TOC size and parse/stringify cost for representative chunk sets;
+  - JSON remains the only supported v0 TOC encoding;
+  - the reader explicitly rejects missing or unsupported TOC encodings;
+  - binary TOC support is deferred until measured payload, streaming, or browser-memory pressure justifies it.
 
-Built-in compression codecs, WASM compression parity, and broader browser compatibility notes are still future work.
+Built-in compression codecs, WASM compression parity, streaming/range loading, and broader browser compatibility notes are still future work.
 
 ## Important Product Language
 
@@ -1811,6 +1816,8 @@ Progress:
 
 ## Stage 17: Optional Binary TOC Evolution
 
+Status: Complete as a measurement and deferral slice. No binary TOC encoding was added for v0.
+
 ### 17.1 Evaluate JSON TOC Pain
 
 Before replacing JSON TOC, measure:
@@ -1823,6 +1830,10 @@ Before replacing JSON TOC, measure:
 Acceptance criteria:
 
 - Decision is data-informed.
+
+Progress:
+
+- Complete. `npm run toc:measure` generates representative semantic-name and opaque-ID TOCs, reports JSON byte size, parse/stringify timing, and a custom-binary size estimate. The result is a repeatable local measurement path rather than a one-off note.
 
 ### 17.2 Choose Binary TOC Format
 
@@ -1840,6 +1851,10 @@ Acceptance criteria:
 - Choice works in browser and Node.
 - Choice does not make simple payloads painful.
 
+Progress:
+
+- Complete. JSON remains the only supported v0 TOC encoding. If a binary TOC becomes necessary, the preferred future direction is a small custom record format. CBOR, MessagePack, Protocol Buffers, and FlatBuffers are deferred to avoid dependency, schema, bundling, and WASM-parity complexity before there is evidence JSON is the bottleneck.
+
 ### 17.3 Add TOC Version Field
 
 Support TOC encoding versions independently from payload file version if needed.
@@ -1848,12 +1863,20 @@ Acceptance criteria:
 
 - Reader can reject unsupported TOC encodings clearly.
 
+Progress:
+
+- Complete. The existing `tocEncoding` field is the independent TOC encoding marker for v0, and tests cover both missing and unsupported values. No separate TOC encoding version field is needed until a second encoding exists.
+
 ### 17.4 Migration Tests
 
 Acceptance criteria:
 
 - Old JSON TOC fixtures still read if compatibility is promised.
 - New binary TOC fixtures are covered.
+
+Progress:
+
+- Complete for the v0 decision. JSON TOC payloads remain covered by the existing writer/reader/WASM fixture tests. Binary fixture tests are deferred because no binary encoding is supported.
 
 ## Stage 18: Streaming and Random Access
 

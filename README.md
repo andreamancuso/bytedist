@@ -223,6 +223,7 @@ npm test
 npm run typecheck
 npm run format
 npm run format:check
+npm run toc:measure
 npm run wasm:build
 npm run wasm:test
 npm pack --dry-run

@@ -50,6 +50,9 @@ describe("public documentation", () => {
     expect(formatDoc).toContain("SHA-256");
     expect(formatDoc).toContain("logical uncompressed chunk bytes");
     expect(formatDoc).toContain("compression codec");
+    expect(formatDoc).toContain('tocEncoding: "json"');
+    expect(formatDoc).toContain("npm run toc:measure");
+    expect(formatDoc).toContain("JSON remains the only supported v0 TOC encoding");
     expect(formatDoc).toContain("pre-1.0");
   });
 

@@ -60,6 +60,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "toc:measure": "node scripts/measure-toc.mjs",
     "wasm:build": "node scripts/build-wasm.mjs",
     "wasm:test": "npm run wasm:build && vitest run src/wasm/reader.test.ts src/wasm/index.test.ts",
     "example:basic": "npm run build && node examples/basic.mjs",

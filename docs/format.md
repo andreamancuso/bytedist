@@ -51,7 +51,9 @@ codec and compression mode used by the writer.
 
 ## TOC Region
 
-The TOC region is currently UTF-8 JSON. The TOC shape is:
+The TOC region is currently UTF-8 JSON. The v0 writer emits
+`tocEncoding: "json"`, and readers reject missing or unsupported TOC encodings
+instead of guessing. The TOC shape is:
 
 ```json
 {
@@ -76,6 +78,25 @@ Optional fields:
 - `manifest`: currently `{ "path": "manifest.json" }` when `createPayload`
   generated a manifest chunk;
 - `metadata`: caller-owned JSON metadata.
+
+### TOC Encoding Decision
+
+Stage 17 measured TOC size and parse/stringify cost with:
+
+```sh
+npm run toc:measure
+```
+
+JSON remains the only supported v0 TOC encoding. It is easy to inspect, keeps the
+TypeScript and WASM readers simple, and avoids adding a second schema before
+there is measured pressure from large payloads, range loading, or browser memory
+limits.
+
+If ByteDist later adds a binary TOC, the preferred direction is a small custom
+record format that can be implemented consistently in TypeScript and WASM. CBOR,
+MessagePack, Protocol Buffers, and FlatBuffers remain deferred because they add
+dependency, bundling, schema-evolution, and cross-runtime complexity before the
+project has evidence that JSON is the bottleneck.
 
 ## Chunk Records
 
