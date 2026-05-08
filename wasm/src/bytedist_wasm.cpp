@@ -50,6 +50,7 @@ struct Chunk {
 
 struct Archive {
   std::vector<uint8_t> bytes;
+  std::string toc_json;
   std::vector<Chunk> chunks;
   std::vector<uint8_t> result;
 };
@@ -537,6 +538,7 @@ bool parse_archive(std::unique_ptr<Archive> archive, int32_t& handle) {
   }
 
   const std::string toc_json(reinterpret_cast<const char*>(toc_data), static_cast<size_t>(toc_length));
+  archive->toc_json = toc_json;
   JsonParser parser(toc_json);
   auto parsed = parser.parse();
   if (!parsed.has_value()) {
@@ -668,6 +670,19 @@ void bd_close(int32_t handle) {
 int32_t bd_chunk_count(int32_t handle) {
   const Archive* archive = get_archive(handle);
   return archive == nullptr ? -1 : static_cast<int32_t>(archive->chunks.size());
+}
+
+const uint8_t* bd_toc_json_ptr(int32_t handle) {
+  const Archive* archive = get_archive(handle);
+  if (archive == nullptr || archive->toc_json.empty()) {
+    return nullptr;
+  }
+  return reinterpret_cast<const uint8_t*>(archive->toc_json.data());
+}
+
+int32_t bd_toc_json_len(int32_t handle) {
+  const Archive* archive = get_archive(handle);
+  return archive == nullptr ? -1 : static_cast<int32_t>(archive->toc_json.size());
 }
 
 const uint8_t* bd_chunk_name_ptr(int32_t handle, int32_t index) {

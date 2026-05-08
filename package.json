@@ -37,6 +37,10 @@
     "./html": {
       "types": "./dist/html/index.d.ts",
       "import": "./dist/html/index.js"
+    },
+    "./wasm": {
+      "types": "./dist/wasm/index.d.ts",
+      "import": "./dist/wasm/index.js"
     }
   },
   "files": [
@@ -57,7 +61,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "wasm:build": "node scripts/build-wasm.mjs",
-    "wasm:test": "npm run wasm:build && vitest run src/wasm/reader.test.ts",
+    "wasm:test": "npm run wasm:build && vitest run src/wasm/reader.test.ts src/wasm/index.test.ts",
     "example:basic": "npm run build && node examples/basic.mjs",
     "example:browser-gallery": "npm run build && node examples/browser-gallery.mjs",
     "example:single-file-html": "npm run build && node examples/single-file-html.mjs",

@@ -98,9 +98,14 @@ As of May 8, 2026, the repository has completed the framing and setup work plus 
   - C++/Emscripten reader source and Docker build scripts live under `wasm/`;
   - `npm run wasm:build` produces ignored WASM artifacts under `wasm/dist/`;
   - `npm run wasm:test` compares valid payload and invalid-payload behavior against shared TypeScript-created fixtures;
-  - the current WASM path validates structure and reads uncompressed chunks, while SHA-256 verification and the stable JS wrapper remain Stage 16 work.
+  - the current WASM path validates structure and reads uncompressed chunks.
+- Stage 16 experimental WASM runtime API is complete:
+  - `bytedist/wasm` exposes a typed wrapper over the native ABI;
+  - wrapper archives follow the `OpenedPayload` shape and map native failures to ByteDist error classes;
+  - embedded payload and embedded WASM data blocks can initialize the WASM path;
+  - TypeScript fallback is explicit opt-in.
 
-Built-in compression codecs, the stable WASM runtime wrapper, and broader browser compatibility notes are still future work.
+Built-in compression codecs, WASM compression parity, and broader browser compatibility notes are still future work.
 
 ## Important Product Language
 
@@ -1741,6 +1746,8 @@ Progress:
 
 ## Stage 16: WASM Runtime API
 
+Status: Complete for the experimental runtime wrapper. The generated WASM artifacts remain ignored, and the wrapper remains marked experimental until browser/demo dogfooding is complete.
+
 ### 16.1 Define Narrow ABI
 
 Example functions:
@@ -1758,6 +1765,10 @@ Acceptance criteria:
 - ABI is documented.
 - Memory ownership rules are documented.
 
+Progress:
+
+- Complete. `docs/wasm.md` documents the exported native ABI, caller-owned input buffers, native-owned views, result lifetimes, and error-message lifetimes.
+
 ### 16.2 Add JS Wrapper
 
 Expose a friendly JS API over the raw WASM module.
@@ -1766,6 +1777,10 @@ Acceptance criteria:
 
 - Consumers do not deal with raw pointers.
 - Errors become JS exceptions.
+
+Progress:
+
+- Complete. `bytedist/wasm` exposes `createWasmReader`, `openPayloadWithWasm`, `readEmbeddedWasmReader`, and `openEmbeddedPayloadWithWasm`. The wrapper returns `OpenedPayload`-compatible archives and maps native error codes to existing ByteDist error classes.
 
 ### 16.3 Add Embedded WASM Loader
 
@@ -1776,6 +1791,10 @@ Acceptance criteria:
 - Single-file HTML can instantiate embedded WASM.
 - Fallback to TS reader is possible if WASM fails, if desired.
 
+Progress:
+
+- Complete. The wrapper uses existing non-executable embedded payload and WASM data blocks. TypeScript fallback is available only with `fallback: "typescript"` so WASM failures remain visible by default.
+
 ### 16.4 WASM Test Suite
 
 Run shared fixtures against WASM reader.
@@ -1785,6 +1804,10 @@ Acceptance criteria:
 - Valid payload fixtures pass.
 - Invalid payload fixtures fail.
 - CI builds WASM or at least has a dedicated workflow.
+
+Progress:
+
+- Complete locally. WASM tests cover valid payloads, invalid payloads, typed wrapper errors, hash verification through WASM reads, embedded WASM initialization, and explicit TypeScript fallback. CI integration remains deferred until the project decides whether Docker-based WASM builds should run on every push.
 
 ## Stage 17: Optional Binary TOC Evolution
 

@@ -33,7 +33,7 @@ run(
     "-s",
     "ALLOW_MEMORY_GROWTH=1",
     "-s",
-    "EXPORTED_FUNCTIONS=['_bd_malloc','_bd_free','_bd_open','_bd_close','_bd_chunk_count','_bd_chunk_name_ptr','_bd_chunk_name_len','_bd_read_chunk','_bd_result_ptr','_bd_result_len','_bd_last_error_code','_bd_last_error_message_ptr','_bd_last_error_message_len']",
+    "EXPORTED_FUNCTIONS=['_bd_malloc','_bd_free','_bd_open','_bd_close','_bd_chunk_count','_bd_toc_json_ptr','_bd_toc_json_len','_bd_chunk_name_ptr','_bd_chunk_name_len','_bd_read_chunk','_bd_result_ptr','_bd_result_len','_bd_last_error_code','_bd_last_error_message_ptr','_bd_last_error_message_len']",
     "-s",
     "EXPORTED_RUNTIME_METHODS=['HEAPU8']",
     "-o",

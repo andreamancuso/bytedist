@@ -207,11 +207,11 @@ Available today:
 - CLI commands for `pack`, `inspect`, `verify`, and `bundle-html`.
 - Adapter-based compression plumbing.
 - Format documentation in [`docs/format.md`](docs/format.md).
-- Experimental WASM reader/validator notes in [`docs/wasm.md`](docs/wasm.md).
+- Experimental WASM reader/validator wrapper in `bytedist/wasm`.
+- WASM runtime notes in [`docs/wasm.md`](docs/wasm.md).
 
 Planned next:
 
-- stable WASM runtime wrapper for hardened standalone artifacts;
 - built-in compression adapters;
 - broader browser compatibility notes.
 
@@ -223,6 +223,8 @@ npm test
 npm run typecheck
 npm run format
 npm run format:check
+npm run wasm:build
+npm run wasm:test
 npm pack --dry-run
 ```
 
