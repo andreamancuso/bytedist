@@ -35,3 +35,5 @@ export class PayloadChunkNotFoundError extends ByteDistError {
 export class PayloadCompressionError extends ByteDistError {}
 
 export class PayloadEmbeddingError extends ByteDistError {}
+
+export class PayloadUnsupportedFeatureError extends ByteDistError {}

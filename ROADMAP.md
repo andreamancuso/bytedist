@@ -29,7 +29,7 @@ HTML template + viewer JS + WASM decoder + .bytedist
 
 ## Current Progress
 
-As of May 8, 2026, the repository has completed the framing and setup work plus the first writer implementation slice:
+As of May 8, 2026, the repository has completed the framing and setup work plus the first writer and reader implementation slices:
 
 - Stage 0 project framing is complete in `README.md`, with generic product language, target audience, license, and explicit no-DRM/no-secrets language.
 - Stage 1 repository setup is complete with npm package metadata, TypeScript, Vitest, Prettier, declaration-emitting build, package dry-run support, and GitHub Actions CI.
@@ -45,8 +45,13 @@ As of May 8, 2026, the repository has completed the framing and setup work plus 
   - empty chunks are supported;
   - duplicate and unsafe chunk names are rejected;
   - optional per-chunk SHA-256 hash metadata is emitted when requested.
+- Stage 4 minimal reader is complete:
+  - `openPayload` validates header, footer, TOC shape, chunk names, chunk ranges, and unsupported compression;
+  - archive objects expose `list`, `has`, `getToc`, `readBytes`, `readText`, `readJson`, and `close`;
+  - `readBytes` returns defensive copies;
+  - `verify` throws a typed unsupported-feature error until Stage 5.
 
-The payload reader, full integrity verification API, CLI commands, browser runtime, HTML bundler, and WASM reader are still future work.
+The full integrity verification API, CLI commands, browser runtime, HTML bundler, and WASM reader are still future work.
 
 ## Important Product Language
 
@@ -819,6 +824,15 @@ Progress:
 
 ## Stage 4: Minimal Reader
 
+Status: Complete.
+
+Implemented in:
+
+- `src/core/read.ts`
+- `src/core/read.test.ts`
+- `src/core/index.ts`
+- `src/format/errors.ts`
+
 ### 4.1 Parse Header
 
 Implement header parser.
@@ -827,6 +841,10 @@ Acceptance criteria:
 
 - Header parser validates magic/version.
 - Header parser returns useful metadata.
+
+Progress:
+
+- Complete. The reader validates `BDISTPAY`, version `0`, header length, flags, and reserved fields.
 
 ### 4.2 Parse Footer
 
@@ -837,6 +855,10 @@ Acceptance criteria:
 - Footer parser locates TOC.
 - Footer parser detects invalid offsets.
 
+Progress:
+
+- Complete. The reader validates `BDISTEND`, version `0`, payload length, checksum placeholder, TOC offset, and TOC length.
+
 ### 4.3 Parse TOC
 
 Implement JSON TOC parsing.
@@ -846,6 +868,10 @@ Acceptance criteria:
 - TOC is parsed into typed records.
 - TOC chunk offsets are validated.
 - Invalid JSON fails cleanly.
+
+Progress:
+
+- Complete. JSON TOC parsing validates TOC shape, duplicate and unsafe chunk names, chunk ranges, unsupported compression, and stored/logical length mismatches.
 
 ### 4.4 Open Payload
 
@@ -858,6 +884,10 @@ Acceptance criteria:
 - It supports `has(name)`.
 - It supports `getToc()`.
 
+Progress:
+
+- Complete. `openPayload(bytes)` returns a promise for an archive-like object with `list`, `has`, and defensive `getToc`.
+
 ### 4.5 Read Bytes
 
 Implement `readBytes(name)`.
@@ -868,6 +898,10 @@ Acceptance criteria:
 - Throws `PayloadChunkNotFoundError` for missing chunks.
 - Tests cover multiple chunks.
 
+Progress:
+
+- Complete. `readBytes` returns exact defensive byte copies and throws `PayloadChunkNotFoundError` for missing chunks.
+
 ### 4.6 Read Text and JSON
 
 Implement `readText(name)` and `readJson(name)`.
@@ -877,6 +911,10 @@ Acceptance criteria:
 - UTF-8 decoding works.
 - JSON parse errors are useful.
 - Tests cover normal and invalid JSON.
+
+Progress:
+
+- Complete. `readText` uses UTF-8 decoding, and `readJson` wraps parse failures in `PayloadFormatError`.
 
 ## Stage 5: Integrity Support
 

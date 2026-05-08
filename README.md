@@ -65,7 +65,7 @@ it must not be used to hide secrets.
 
 ## Status
 
-Current milestone: minimal in-memory payload writer.
+Current milestone: minimal in-memory payload reader.
 
 Available today:
 
@@ -82,6 +82,8 @@ Available today:
 - `createPayload` for in-memory v0 payload creation;
 - JSON TOC and footer metadata writing;
 - optional per-chunk SHA-256 hash metadata.
+- `openPayload` for in-memory v0 payload reading;
+- archive helpers for `list`, `has`, `getToc`, `readBytes`, `readText`, and `readJson`.
 
 Planned next slices are described in `ROADMAP.md`.
 
