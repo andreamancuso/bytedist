@@ -23,14 +23,7 @@ export function crc32(bytes: Uint8Array): number {
 
 async function sha256HexWithNodeCrypto(bytes: Uint8Array): Promise<string> {
   try {
-    const importer = new Function("specifier", "return import(specifier)") as (
-      specifier: string
-    ) => Promise<{
-      readonly createHash: (algorithm: string) => {
-        readonly update: (data: Uint8Array) => { readonly digest: (encoding: "hex") => string };
-      };
-    }>;
-    const { createHash } = await importer("node:crypto");
+    const { createHash } = await import("node:crypto");
     return createHash("sha256").update(bytes).digest("hex");
   } catch (error) {
     throw new PayloadIntegrityError("SHA-256 hashing is unavailable in this runtime.", {
