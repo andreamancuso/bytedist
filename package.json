@@ -70,6 +70,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "toc:measure": "node scripts/measure-toc.mjs",
+    "perf:baseline": "npm run build && node scripts/measure-performance.mjs",
+    "perf:baseline:quick": "npm run build && node scripts/measure-performance.mjs --quick",
     "wasm:build": "node scripts/build-wasm.mjs",
     "wasm:test": "npm run wasm:build && vitest run src/wasm/reader.test.ts src/wasm/index.test.ts",
     "example:basic": "npm run build && node examples/basic.mjs",

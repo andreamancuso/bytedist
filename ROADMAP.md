@@ -29,7 +29,7 @@ HTML template + viewer JS + WASM decoder + .bytedist
 
 ## Current Progress
 
-As of May 9, 2026, the repository has completed the framing and setup work plus the first writer, reader, integrity, Node filesystem helper, CLI, browser loader, single-file HTML embedding, HTML bundler, compression-adapter, format-docs, README, example, experimental WASM-reader, Vite, deterministic-build, and metadata/manifest convention slices:
+As of May 9, 2026, the repository has completed the framing and setup work plus the first writer, reader, integrity, Node filesystem helper, CLI, browser loader, single-file HTML embedding, HTML bundler, compression-adapter, format-docs, README, example, experimental WASM-reader, Vite, deterministic-build, metadata/manifest convention, extraction-safety, and performance-baseline slices:
 
 - Stage 0 project framing is complete in `README.md`, with generic product language, target audience, license, and explicit no-DRM/no-secrets language.
 - Stage 1 repository setup is complete with npm package metadata, TypeScript, Vitest, Prettier, declaration-emitting build, package dry-run support, and GitHub Actions CI.
@@ -141,6 +141,10 @@ As of May 9, 2026, the repository has completed the framing and setup work plus 
   - internal Node helpers plan and write extracted payload chunks with conservative path and overwrite checks;
   - public `extract` remains absent from the CLI;
   - `docs/extraction-safety.md` documents traversal, filename, collision, and overwrite rules.
+- Stage 24 performance baseline is complete:
+  - `npm run perf:baseline` and `npm run perf:baseline:quick` measure packer, reader, verification, and single-file base64 costs with generated deterministic payloads;
+  - benchmark compression cases use script-local Node zlib adapters without adding public runtime codecs;
+  - `docs/performance.md` documents how to run local baselines and how to choose between embedded, external, compressed, and range-loaded artifacts.
 
 Built-in compression codecs, WASM compression parity, and broader compatibility notes are still future work.
 
@@ -2208,6 +2212,8 @@ Progress:
 
 ## Stage 24: Performance Baseline
 
+Status: Complete for repeatable local benchmark tooling and performance guidance. The repository intentionally does not commit machine-specific benchmark results.
+
 ### 24.1 Benchmark Packer
 
 Acceptance criteria:
@@ -2215,6 +2221,10 @@ Acceptance criteria:
 - Benchmarks for many small files.
 - Benchmarks for few large files.
 - Benchmarks for compressed and uncompressed modes.
+
+Progress:
+
+- Complete. `scripts/measure-performance.mjs` generates deterministic many-small and few-large fixture sets, measures uncompressed and script-local deflate-adapter packing, and is available through `npm run perf:baseline` and `npm run perf:baseline:quick`.
 
 ### 24.2 Benchmark Reader
 
@@ -2225,6 +2235,10 @@ Acceptance criteria:
 - Chunk read time measured.
 - Verify time measured.
 
+Progress:
+
+- Complete. The benchmark reports local median open time, JSON TOC parse time, selected-chunk read time, all-chunk read time, and SHA-256 verification time for each generated case.
+
 ### 24.3 Benchmark Single-File Decode
 
 Acceptance criteria:
@@ -2233,12 +2247,20 @@ Acceptance criteria:
 - Memory overhead noted.
 - Docs include practical guidance.
 
+Progress:
+
+- Complete. The benchmark reports base64 encoded size, overhead percentage, and decode timing for each case. Heap deltas are reported when Node is run with `--expose-gc`; otherwise the output marks memory deltas as unavailable.
+
 ### 24.4 Performance Budget Docs
 
 Acceptance criteria:
 
 - Recommended payload size ranges documented.
 - Single-file warnings documented.
+
+Progress:
+
+- Complete. `docs/performance.md` documents local benchmark usage, hardware-dependent interpretation, single-file base64 overhead, memory caveats, and conservative guidance for small, medium, and large payload shapes.
 
 ## Stage 25: Compatibility Matrix
 
