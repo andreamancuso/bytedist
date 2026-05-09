@@ -9,7 +9,8 @@ import type {
   CompressionCodec,
   JsonObject,
   PayloadChunkRecord,
-  PayloadManifestReference
+  PayloadManifestReference,
+  PayloadMetadata
 } from "../format/types.js";
 import { crc32, sha256Hex } from "./hash.js";
 import { openPayload } from "./read.js";
@@ -52,7 +53,7 @@ export interface PayloadSignatureProvenance {
   readonly toc: PayloadSignatureTocProvenance;
   readonly createdBy?: string;
   readonly manifest?: PayloadManifestReference;
-  readonly metadata?: JsonObject;
+  readonly metadata?: PayloadMetadata;
   readonly chunks: readonly PayloadSignatureChunkProvenance[];
 }
 

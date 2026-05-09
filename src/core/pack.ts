@@ -1,5 +1,6 @@
 import {
   DEFAULT_COMPRESSION,
+  DEFAULT_MANIFEST_CHUNK_NAME,
   DEFAULT_TOC_ENCODING,
   PAYLOAD_FORMAT_VERSION,
   PAYLOAD_FOOTER_LENGTH,
@@ -10,7 +11,7 @@ import {
   PayloadFormatError,
   PayloadIntegrityError
 } from "../format/errors.js";
-import { assertValidChunkName } from "../format/validation.js";
+import { assertNotReservedChunkName, assertValidChunkName } from "../format/validation.js";
 import type {
   CompressionAlgorithm,
   CompressionMode,
@@ -28,8 +29,6 @@ import {
 import { sha256Hex } from "./hash.js";
 import { crc32 } from "./hash.js";
 import { writePayloadFooter, writePayloadHeader } from "./layout.js";
-
-const MANIFEST_CHUNK_NAME = "manifest.json";
 
 const textEncoder = new TextEncoder();
 
@@ -78,7 +77,7 @@ export async function createPayload(options: CreatePayloadOptions): Promise<Uint
     version: PAYLOAD_FORMAT_VERSION,
     tocEncoding: DEFAULT_TOC_ENCODING,
     ...(options.createdBy === undefined ? {} : { createdBy: options.createdBy }),
-    ...(options.manifest === undefined ? {} : { manifest: { path: MANIFEST_CHUNK_NAME } }),
+    ...(options.manifest === undefined ? {} : { manifest: { path: DEFAULT_MANIFEST_CHUNK_NAME } }),
     chunks: chunkRecords,
     ...(options.metadata === undefined ? {} : { metadata: options.metadata })
   };
@@ -104,13 +103,14 @@ function prepareChunks(options: CreatePayloadOptions): PreparedChunk[] {
       chunks,
       seenNames,
       {
-        name: MANIFEST_CHUNK_NAME,
+        name: DEFAULT_MANIFEST_CHUNK_NAME,
         bytes: serializeManifest(options.manifest),
         mime: "application/json",
         encoding: "utf-8",
         compression: DEFAULT_COMPRESSION
       },
-      true
+      true,
+      options.allowReservedChunkNames === true
     );
   }
 
@@ -120,7 +120,13 @@ function prepareChunks(options: CreatePayloadOptions): PreparedChunk[] {
       : options.files;
 
   for (const file of files) {
-    addChunk(chunks, seenNames, file, options.manifest !== undefined);
+    addChunk(
+      chunks,
+      seenNames,
+      file,
+      options.manifest !== undefined,
+      options.allowReservedChunkNames === true
+    );
   }
 
   return chunks;
@@ -130,11 +136,16 @@ function addChunk(
   chunks: PreparedChunk[],
   seenNames: Set<string>,
   input: PayloadFileInput,
-  hasGeneratedManifest: boolean
+  hasGeneratedManifest: boolean,
+  allowReservedChunkNames: boolean
 ): void {
   assertValidChunkName(input.name);
 
-  if (hasGeneratedManifest && input.name === MANIFEST_CHUNK_NAME && chunks.length > 0) {
+  if (!allowReservedChunkNames) {
+    assertNotReservedChunkName(input.name);
+  }
+
+  if (hasGeneratedManifest && input.name === DEFAULT_MANIFEST_CHUNK_NAME && chunks.length > 0) {
     throw new PayloadFormatError(
       "Cannot pass an explicit manifest.json file when createPayload options include manifest."
     );

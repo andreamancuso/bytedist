@@ -17,6 +17,8 @@ blobs make an export harder to ship, inspect, or maintain.
 - Supports HTTP range loading for hosted external payloads.
 - Verifies per-chunk SHA-256 metadata and TOC CRC32 corruption checks.
 - Supports deterministic chunk ordering and whole-payload SHA-256 hashes.
+- Defines conventional manifest, payload metadata, and reserved namespace
+  helpers.
 - Signs and verifies detached provenance envelopes with public-key signatures.
 - Packs directories and writes payload files through `bytedist/node`.
 - Integrates with Vite builds through the optional `bytedist/vite` plugin.
@@ -84,7 +86,12 @@ const payload = await createPayload({
       encoding: "utf-8"
     }
   ],
-  integrity: "sha256"
+  integrity: "sha256",
+  metadata: {
+    title: "Example Payload",
+    appId: "example.app",
+    appVersion: "1.0.0"
+  }
 });
 
 const payloadHash = await computePayloadHash(payload);
@@ -171,6 +178,17 @@ await verifyPayloadSignature(payloadBytes, envelope, publicKeyPem);
 
 A minimal no-bundler single-file example lives in
 [`examples/single-file-html/`](examples/single-file-html/).
+
+## Metadata And Manifests
+
+The conventional application manifest chunk name is `manifest.json`. Payload
+metadata is separate, generic TOC-level JSON for inspection and tooling fields
+such as `title`, `description`, `createdBy`, `createdAt`, `appId`, and
+`appVersion`.
+
+The `.bytedist` chunk namespace is reserved for ByteDist-owned conventional
+chunks and is rejected by default unless `allowReservedChunkNames: true` is set.
+See [`docs/metadata-and-manifests.md`](docs/metadata-and-manifests.md).
 
 ## Examples
 
@@ -263,6 +281,8 @@ Available today:
 - Optional Vite build plugin in `bytedist/vite`.
 - Adapter-based compression plumbing.
 - Format documentation in [`docs/format.md`](docs/format.md).
+- Metadata and manifest notes in
+  [`docs/metadata-and-manifests.md`](docs/metadata-and-manifests.md).
 - Deterministic build notes in
   [`docs/deterministic-builds.md`](docs/deterministic-builds.md).
 - Browser loading notes in [`docs/browser.md`](docs/browser.md).

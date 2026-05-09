@@ -62,7 +62,11 @@ The plugin accepts the same directory-packing options as `packDirectory`:
 - `compression`;
 - `compressionMode`;
 - `compressionCodecs`;
-- `metadata`.
+- `metadata`;
+- `allowReservedChunkNames`.
+
+The plugin follows `packDirectory` defaults, including rejection of the reserved
+`.bytedist` chunk namespace unless `allowReservedChunkNames: true` is supplied.
 
 It also accepts Vite-specific options:
 

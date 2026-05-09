@@ -23,3 +23,13 @@ export const FOOTER_CHECKSUM_NONE = 0;
 export const DEFAULT_TOC_ENCODING = "json";
 
 export const DEFAULT_COMPRESSION = "none";
+
+export const DEFAULT_MANIFEST_CHUNK_NAME = "manifest.json";
+
+export const RESERVED_CHUNK_NAMESPACE = ".bytedist";
+
+export const RESERVED_CHUNK_NAMES = [
+  ".bytedist/metadata.json",
+  ".bytedist/signature",
+  ".bytedist/license.json"
+] as const;

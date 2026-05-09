@@ -3,7 +3,8 @@ import {
   FOOTER_MAGIC_LENGTH,
   PAYLOAD_FORMAT_VERSION,
   PAYLOAD_MAGIC_BYTES,
-  PAYLOAD_MAGIC_LENGTH
+  PAYLOAD_MAGIC_LENGTH,
+  RESERVED_CHUNK_NAMESPACE
 } from "./constants.js";
 import { PayloadFormatError, PayloadVersionError } from "./errors.js";
 
@@ -85,5 +86,15 @@ export function isValidChunkName(name: string): boolean {
 export function assertValidChunkName(name: string): void {
   if (!isValidChunkName(name)) {
     throw new PayloadFormatError(`Invalid ByteDist chunk name: ${name}.`);
+  }
+}
+
+export function isReservedChunkName(name: string): boolean {
+  return name === RESERVED_CHUNK_NAMESPACE || name.startsWith(`${RESERVED_CHUNK_NAMESPACE}/`);
+}
+
+export function assertNotReservedChunkName(name: string): void {
+  if (isReservedChunkName(name)) {
+    throw new PayloadFormatError(`Reserved ByteDist chunk name: ${name}.`);
   }
 }

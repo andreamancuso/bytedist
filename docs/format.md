@@ -62,7 +62,11 @@ instead of guessing. The TOC shape is:
   "createdBy": "optional writer name",
   "manifest": { "path": "manifest.json" },
   "chunks": [],
-  "metadata": {}
+  "metadata": {
+    "title": "Example Artifact",
+    "appId": "example.viewer",
+    "appVersion": "1.0.0"
+  }
 }
 ```
 
@@ -77,7 +81,9 @@ Optional fields:
 - `createdBy`: a writer identifier for debugging;
 - `manifest`: currently `{ "path": "manifest.json" }` when `createPayload`
   generated a manifest chunk;
-- `metadata`: caller-owned JSON metadata.
+- `metadata`: caller-owned payload metadata. Conventional optional string
+  fields are `title`, `description`, `createdBy`, `createdAt`, `appId`, and
+  `appVersion`; custom JSON-compatible fields are also allowed.
 
 ### TOC Encoding Decision
 
@@ -151,6 +157,22 @@ Chunk names are case-sensitive and use forward slashes. Valid names:
 When `createPayload({ manifest })` is used, ByteDist generates a `manifest.json`
 chunk and stores `toc.manifest.path` as `manifest.json`. Callers must not also
 provide an explicit `manifest.json` file in that mode.
+
+The `.bytedist` namespace is reserved for ByteDist-owned conventional chunks.
+The currently reserved names are:
+
+```text
+.bytedist/metadata.json
+.bytedist/signature
+.bytedist/license.json
+```
+
+Writers reject `.bytedist` and `.bytedist/*` chunk names by default. Advanced
+callers can opt in with `allowReservedChunkNames: true`, accepting compatibility
+risk if a future ByteDist version assigns behavior to reserved names.
+
+See [`metadata-and-manifests.md`](metadata-and-manifests.md) for public API
+conventions.
 
 ## Footer
 

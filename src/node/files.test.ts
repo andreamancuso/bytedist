@@ -84,6 +84,33 @@ describe("node filesystem helpers", () => {
     await expect(archive.verify()).resolves.toBeUndefined();
   });
 
+  it("rejects reserved ByteDist chunk names by default when collecting files", async () => {
+    const root = await createTempDir();
+    await writeFixture(root, ".bytedist/metadata.json", "{}");
+
+    await expect(collectDirectoryFiles(root)).rejects.toThrow(PayloadFormatError);
+  });
+
+  it("rejects reserved ByteDist chunk names by default when packing directories", async () => {
+    const root = await createTempDir();
+    await writeFixture(root, ".bytedist/signature", "signature");
+
+    await expect(packDirectory(root)).rejects.toThrow(PayloadFormatError);
+  });
+
+  it("allows reserved ByteDist chunk names when explicitly requested", async () => {
+    const root = await createTempDir();
+    await writeFixture(root, ".bytedist/metadata.json", "{}");
+    await writeFixture(root, "asset.txt", "asset");
+
+    const files = await collectDirectoryFiles(root, { allowReservedChunkNames: true });
+    const payload = await packDirectory(root, { allowReservedChunkNames: true });
+    const archive = await openPayload(payload);
+
+    expect(files.map((file) => file.name)).toEqual([".bytedist/metadata.json", "asset.txt"]);
+    expect(archive.list()).toEqual([".bytedist/metadata.json", "asset.txt"]);
+  });
+
   it("produces identical payload bytes for repeated directory packs", async () => {
     const root = await createTempDir();
     await writeFixture(root, "z.txt", "z");

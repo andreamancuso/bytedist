@@ -3,11 +3,12 @@ import type {
   CompressionCodec,
   CompressionMode,
   IntegrityAlgorithm,
-  JsonObject
+  PayloadMetadata
 } from "../format/types.js";
 
 export interface CollectDirectoryFilesOptions {
   readonly ignore?: readonly string[];
+  readonly allowReservedChunkNames?: boolean;
 }
 
 export interface PackDirectoryOptions extends CollectDirectoryFilesOptions {
@@ -17,7 +18,7 @@ export interface PackDirectoryOptions extends CollectDirectoryFilesOptions {
   readonly compressionMode?: CompressionMode;
   readonly compressionCodecs?: readonly CompressionCodec[];
   readonly createdBy?: string;
-  readonly metadata?: JsonObject;
+  readonly metadata?: PayloadMetadata;
 }
 
 export interface WritePayloadFileOptions {

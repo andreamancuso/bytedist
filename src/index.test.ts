@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   ByteDistError,
+  DEFAULT_MANIFEST_CHUNK_NAME,
   FOOTER_MAGIC_BYTES,
   FOOTER_MAGIC_LENGTH,
   FOOTER_MAGIC_TEXT,
@@ -16,20 +17,25 @@ import {
   PayloadIntegrityError,
   PayloadIntegrityMetadataMissingError,
   PayloadIntegrityMismatchError,
+  RESERVED_CHUNK_NAMES,
+  RESERVED_CHUNK_NAMESPACE,
   PayloadSignatureError,
   PayloadVersionError,
   assertFooterMagic,
+  assertNotReservedChunkName,
   assertPayloadMagic,
   assertSupportedFormatVersion,
   assertValidChunkName,
   computePayloadHash,
   isFooterMagic,
   isPayloadMagic,
+  isReservedChunkName,
   isSupportedFormatVersion,
   isValidChunkName,
   type CreatePayloadOptions,
   type JsonValue,
   type OpenedPayload,
+  type PayloadMetadata,
   type PayloadToc
 } from "./index.js";
 
@@ -49,6 +55,16 @@ describe("format constants", () => {
 
   it("exports the initial payload format version", () => {
     expect(PAYLOAD_FORMAT_VERSION).toBe(0);
+  });
+
+  it("exports conventional manifest and reserved namespace constants", () => {
+    expect(DEFAULT_MANIFEST_CHUNK_NAME).toBe("manifest.json");
+    expect(RESERVED_CHUNK_NAMESPACE).toBe(".bytedist");
+    expect(RESERVED_CHUNK_NAMES).toEqual([
+      ".bytedist/metadata.json",
+      ".bytedist/signature",
+      ".bytedist/license.json"
+    ]);
   });
 });
 
@@ -107,6 +123,15 @@ describe("format validation", () => {
     expect(isValidChunkName("../secret.txt")).toBe(false);
     expect(() => assertValidChunkName("../secret.txt")).toThrow(PayloadFormatError);
   });
+
+  it("recognizes the reserved ByteDist chunk namespace", () => {
+    expect(isReservedChunkName(".bytedist")).toBe(true);
+    expect(isReservedChunkName(".bytedist/metadata.json")).toBe(true);
+    expect(isReservedChunkName(".bytedist/custom.bin")).toBe(true);
+    expect(isReservedChunkName("assets/.bytedist/file.bin")).toBe(false);
+    expect(() => assertNotReservedChunkName(".bytedist/signature")).toThrow(PayloadFormatError);
+    expect(() => assertNotReservedChunkName("assets/data.bin")).not.toThrow();
+  });
 });
 
 describe("format errors", () => {
@@ -160,13 +185,28 @@ describe("public types", () => {
         }
       ],
       integrity: "sha256",
-      compression: "none"
+      compression: "none",
+      metadata: {
+        title: "Example payload",
+        description: "Compile-time metadata check",
+        createdBy: "bytedist-test",
+        createdAt: "2026-05-09T00:00:00.000Z",
+        appId: "example.app",
+        appVersion: "1.0.0",
+        customFlag: true
+      }
+    };
+
+    const metadata: PayloadMetadata = {
+      title: "Example payload",
+      custom: { nested: ["value"] }
     };
 
     const toc: PayloadToc = {
       version: 0,
       tocEncoding: "json",
       manifest: { path: "manifest.json" },
+      metadata,
       chunks: [
         {
           name: "manifest.json",

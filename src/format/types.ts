@@ -35,6 +35,16 @@ export interface PayloadHash {
   readonly value: string;
 }
 
+export interface PayloadMetadata {
+  readonly title?: string;
+  readonly description?: string;
+  readonly createdBy?: string;
+  readonly createdAt?: string;
+  readonly appId?: string;
+  readonly appVersion?: string;
+  readonly [key: string]: JsonValue | undefined;
+}
+
 export interface PayloadFileInput {
   readonly name: string;
   readonly bytes: Uint8Array;
@@ -49,12 +59,13 @@ export interface CreatePayloadOptions {
   readonly manifest?: JsonValue;
   readonly files: readonly PayloadFileInput[];
   readonly chunkOrder?: ChunkOrder;
+  readonly allowReservedChunkNames?: boolean;
   readonly integrity?: IntegrityAlgorithm | false;
   readonly compression?: CompressionAlgorithm;
   readonly compressionMode?: CompressionMode;
   readonly compressionCodecs?: readonly CompressionCodec[];
   readonly createdBy?: string;
-  readonly metadata?: JsonObject;
+  readonly metadata?: PayloadMetadata;
 }
 
 export interface OpenPayloadOptions {
@@ -83,7 +94,7 @@ export interface PayloadToc {
   readonly createdBy?: string;
   readonly manifest?: PayloadManifestReference;
   readonly chunks: readonly PayloadChunkRecord[];
-  readonly metadata?: JsonObject;
+  readonly metadata?: PayloadMetadata;
 }
 
 export interface OpenedPayload {

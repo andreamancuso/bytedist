@@ -29,7 +29,7 @@ HTML template + viewer JS + WASM decoder + .bytedist
 
 ## Current Progress
 
-As of May 8, 2026, the repository has completed the framing and setup work plus the first writer, reader, integrity, Node filesystem helper, CLI, browser loader, single-file HTML embedding, HTML bundler, compression-adapter, format-docs, README, example, and experimental WASM-reader slices:
+As of May 9, 2026, the repository has completed the framing and setup work plus the first writer, reader, integrity, Node filesystem helper, CLI, browser loader, single-file HTML embedding, HTML bundler, compression-adapter, format-docs, README, example, experimental WASM-reader, Vite, deterministic-build, and metadata/manifest convention slices:
 
 - Stage 0 project framing is complete in `README.md`, with generic product language, target audience, license, and explicit no-DRM/no-secrets language.
 - Stage 1 repository setup is complete with npm package metadata, TypeScript, Vitest, Prettier, declaration-emitting build, package dry-run support, and GitHub Actions CI.
@@ -132,6 +132,11 @@ As of May 8, 2026, the repository has completed the framing and setup work plus 
   - `computePayloadHash` exposes whole-payload SHA-256 hashes;
   - `docs/deterministic-builds.md` documents timestamp and caller-metadata policy;
   - Vite embedded payload determinism is covered for stable inputs.
+- Stage 22 metadata and manifest conventions are complete:
+  - `DEFAULT_MANIFEST_CHUNK_NAME` exposes the `manifest.json` convention;
+  - `PayloadMetadata` defines optional generic fields while keeping application manifests caller-owned;
+  - `.bytedist` and `.bytedist/*` chunk names are reserved by default, with an explicit `allowReservedChunkNames` escape hatch;
+  - `docs/metadata-and-manifests.md` documents the manifest, metadata, and reserved namespace conventions.
 
 Built-in compression codecs, WASM compression parity, and broader compatibility notes are still future work.
 
@@ -2106,6 +2111,8 @@ Progress:
 
 ## Stage 22: Metadata and Manifests
 
+Status: Complete for public manifest constants, generic payload metadata types, reserved namespace validation, Node helper support, tests, and documentation. Writing internal `.bytedist/*` chunks remains deferred.
+
 ### 22.1 App Manifest Convention
 
 Define a conventional manifest chunk name, e.g. `manifest.json`.
@@ -2113,6 +2120,10 @@ Define a conventional manifest chunk name, e.g. `manifest.json`.
 Acceptance criteria:
 
 - Library does not require a manifest but supports one ergonomically.
+
+Progress:
+
+- Complete. `DEFAULT_MANIFEST_CHUNK_NAME` exposes the conventional `manifest.json` chunk name, and `createPayload({ manifest })` continues to generate that chunk and set `toc.manifest.path`.
 
 ### 22.2 Payload Metadata
 
@@ -2131,6 +2142,10 @@ Acceptance criteria:
 - Metadata is generic.
 - Metadata does not replace app manifest.
 
+Progress:
+
+- Complete. `PayloadMetadata` provides optional conventional fields while allowing custom JSON-compatible fields. `CreatePayloadOptions`, `PayloadToc`, `packDirectory`, and the Vite plugin all use the payload-level metadata type, while per-chunk metadata remains caller-owned JSON.
+
 ### 22.3 Reserved Namespace
 
 Reserve names like:
@@ -2145,6 +2160,10 @@ Acceptance criteria:
 
 - Reserved names documented.
 - User chunks cannot accidentally collide unless explicitly allowed.
+
+Progress:
+
+- Complete. `isReservedChunkName` and `assertNotReservedChunkName` recognize `.bytedist` and `.bytedist/*`. `createPayload`, `collectDirectoryFiles`, and `packDirectory` reject those names by default and support `allowReservedChunkNames: true` for explicit escape-hatch use. `docs/metadata-and-manifests.md` and `docs/format.md` document the reserved names.
 
 ## Stage 23: Extraction Safety
 

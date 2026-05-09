@@ -32,6 +32,8 @@ describe("public documentation", () => {
     expect(readme).toContain("Deterministic build notes");
     expect(readme).toContain("Signing and provenance notes");
     expect(readme).toContain("Vite integration notes");
+    expect(readme).toContain("Metadata and manifest notes");
+    expect(readme).toContain("allowReservedChunkNames");
 
     for (const comparison of ["ZIP", "Emscripten", "Vite", "Web Bundles", "glTF/GLB"]) {
       expect(readme).toContain(comparison);
@@ -65,7 +67,22 @@ describe("public documentation", () => {
     expect(formatDoc).toContain("npm run toc:measure");
     expect(formatDoc).toContain("JSON remains the only supported v0 TOC encoding");
     expect(formatDoc).toContain("Detached Signatures");
+    expect(formatDoc).toContain(".bytedist/metadata.json");
+    expect(formatDoc).toContain("allowReservedChunkNames");
     expect(formatDoc).toContain("pre-1.0");
+  });
+
+  it("documents metadata and manifest conventions", async () => {
+    const metadataDoc = await fs.readFile(
+      new URL("../docs/metadata-and-manifests.md", import.meta.url),
+      "utf8"
+    );
+
+    expect(metadataDoc).toContain("manifest.json");
+    expect(metadataDoc).toContain("Payload metadata");
+    expect(metadataDoc).toContain("appVersion");
+    expect(metadataDoc).toContain(".bytedist/signature");
+    expect(metadataDoc).toContain("allowReservedChunkNames");
   });
 
   it("documents payload signing behavior", async () => {
@@ -101,6 +118,7 @@ describe("public documentation", () => {
     expect(viteDoc).toContain("virtual:bytedist/payload");
     expect(viteDoc).toContain("BYTEDIST_PAYLOAD");
     expect(viteDoc).toContain("build-only");
+    expect(viteDoc).toContain("allowReservedChunkNames");
     expect(viteDoc).toContain("not DRM");
   });
 

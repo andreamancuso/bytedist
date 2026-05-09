@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  DEFAULT_MANIFEST_CHUNK_NAME,
   FOOTER_MAGIC_BYTES,
   PAYLOAD_FLAGS_NONE,
   PAYLOAD_FOOTER_LENGTH,
@@ -61,7 +62,15 @@ describe("createPayload", () => {
         }
       ],
       createdBy: "bytedist-test",
-      metadata: { test: true }
+      metadata: {
+        title: "Example payload",
+        description: "A generic payload for tests",
+        createdBy: "test-suite",
+        createdAt: "2026-05-09T00:00:00.000Z",
+        appId: "example.app",
+        appVersion: "1.0.0",
+        test: true
+      }
     });
 
     const toc = readToc(payload);
@@ -69,7 +78,15 @@ describe("createPayload", () => {
     expect(toc.version).toBe(0);
     expect(toc.tocEncoding).toBe("json");
     expect(toc.createdBy).toBe("bytedist-test");
-    expect(toc.metadata).toEqual({ test: true });
+    expect(toc.metadata).toEqual({
+      title: "Example payload",
+      description: "A generic payload for tests",
+      createdBy: "test-suite",
+      createdAt: "2026-05-09T00:00:00.000Z",
+      appId: "example.app",
+      appVersion: "1.0.0",
+      test: true
+    });
     expect(toc.chunks).toEqual([
       {
         name: "hello.txt",
@@ -209,8 +226,11 @@ describe("createPayload", () => {
     const toc = readToc(payload);
     const manifestBytes = payload.slice(PAYLOAD_HEADER_LENGTH, PAYLOAD_HEADER_LENGTH + 19);
 
-    expect(toc.manifest).toEqual({ path: "manifest.json" });
-    expect(toc.chunks.map((chunk) => chunk.name)).toEqual(["manifest.json", "asset.bin"]);
+    expect(toc.manifest).toEqual({ path: DEFAULT_MANIFEST_CHUNK_NAME });
+    expect(toc.chunks.map((chunk) => chunk.name)).toEqual([
+      DEFAULT_MANIFEST_CHUNK_NAME,
+      "asset.bin"
+    ]);
     expect(toc.chunks[0]).toMatchObject({
       mime: "application/json",
       encoding: "utf-8",
@@ -226,6 +246,26 @@ describe("createPayload", () => {
         files: [{ name: "manifest.json", bytes: new Uint8Array([1]) }]
       })
     ).rejects.toThrow(PayloadFormatError);
+  });
+
+  it.each([".bytedist", ".bytedist/metadata.json", ".bytedist/custom.bin"])(
+    "rejects reserved chunk name %s by default",
+    async (name) => {
+      await expect(
+        createPayload({
+          files: [{ name, bytes: new Uint8Array([1]) }]
+        })
+      ).rejects.toThrow(PayloadFormatError);
+    }
+  );
+
+  it("allows reserved chunk names when explicitly requested", async () => {
+    const payload = await createPayload({
+      allowReservedChunkNames: true,
+      files: [{ name: ".bytedist/metadata.json", bytes: new Uint8Array([1]) }]
+    });
+
+    expect(readToc(payload).chunks.map((chunk) => chunk.name)).toEqual([".bytedist/metadata.json"]);
   });
 
   it("rejects duplicate chunk names", async () => {

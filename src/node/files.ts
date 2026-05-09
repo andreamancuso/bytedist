@@ -2,8 +2,9 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 import { createPayload } from "../core/index.js";
+import { DEFAULT_MANIFEST_CHUNK_NAME } from "../format/constants.js";
 import { PayloadFormatError } from "../format/errors.js";
-import { assertValidChunkName } from "../format/validation.js";
+import { assertNotReservedChunkName, assertValidChunkName } from "../format/validation.js";
 import type { JsonValue, PayloadFileInput } from "../format/types.js";
 import { createIgnoreMatcher } from "./ignore.js";
 import { detectMimeType } from "./mime.js";
@@ -13,8 +14,6 @@ import type {
   WritePayloadFileOptions
 } from "./types.js";
 
-const MANIFEST_CHUNK_NAME = "manifest.json";
-
 export async function collectDirectoryFiles(
   inputDir: string,
   options: CollectDirectoryFilesOptions = {}
@@ -23,7 +22,9 @@ export async function collectDirectoryFiles(
   const ignored = createIgnoreMatcher(options.ignore);
   const files: PayloadFileInput[] = [];
 
-  await collectFiles(root, root, ignored, files);
+  await collectFiles(root, root, ignored, files, {
+    allowReservedChunkNames: options.allowReservedChunkNames === true
+  });
   files.sort((left, right) => left.name.localeCompare(right.name));
 
   return files;
@@ -43,10 +44,13 @@ export async function packDirectory(
   const ignored = createIgnoreMatcher(options.ignore);
   const files: PayloadFileInput[] = [];
 
-  await collectFiles(root, root, ignored, files, manifestAbsolutePath);
+  await collectFiles(root, root, ignored, files, {
+    ...(manifestAbsolutePath === undefined ? {} : { manifestAbsolutePath }),
+    allowReservedChunkNames: options.allowReservedChunkNames === true
+  });
   files.sort((left, right) => left.name.localeCompare(right.name));
 
-  if (manifest !== undefined && files.some((file) => file.name === MANIFEST_CHUNK_NAME)) {
+  if (manifest !== undefined && files.some((file) => file.name === DEFAULT_MANIFEST_CHUNK_NAME)) {
     throw new PayloadFormatError(
       "Cannot pack an explicit manifest.json file when manifestPath is provided."
     );
@@ -62,7 +66,10 @@ export async function packDirectory(
       ? {}
       : { compressionCodecs: options.compressionCodecs }),
     ...(options.createdBy === undefined ? {} : { createdBy: options.createdBy }),
-    ...(options.metadata === undefined ? {} : { metadata: options.metadata })
+    ...(options.metadata === undefined ? {} : { metadata: options.metadata }),
+    ...(options.allowReservedChunkNames === undefined
+      ? {}
+      : { allowReservedChunkNames: options.allowReservedChunkNames })
   });
 }
 
@@ -84,7 +91,10 @@ async function collectFiles(
   currentDir: string,
   ignored: (chunkName: string) => boolean,
   files: PayloadFileInput[],
-  manifestAbsolutePath?: string
+  options: {
+    readonly manifestAbsolutePath?: string;
+    readonly allowReservedChunkNames: boolean;
+  }
 ): Promise<void> {
   const entries = await fs.readdir(currentDir, { withFileTypes: true });
 
@@ -96,7 +106,7 @@ async function collectFiles(
     }
 
     if (entry.isDirectory()) {
-      await collectFiles(root, absolutePath, ignored, files, manifestAbsolutePath);
+      await collectFiles(root, absolutePath, ignored, files, options);
       continue;
     }
 
@@ -104,7 +114,10 @@ async function collectFiles(
       continue;
     }
 
-    if (manifestAbsolutePath !== undefined && path.resolve(absolutePath) === manifestAbsolutePath) {
+    if (
+      options.manifestAbsolutePath !== undefined &&
+      path.resolve(absolutePath) === options.manifestAbsolutePath
+    ) {
       continue;
     }
 
@@ -114,6 +127,9 @@ async function collectFiles(
     }
 
     assertValidChunkName(chunkName);
+    if (!options.allowReservedChunkNames) {
+      assertNotReservedChunkName(chunkName);
+    }
     files.push({
       name: chunkName,
       bytes: await fs.readFile(absolutePath),
