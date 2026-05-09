@@ -60,6 +60,22 @@ describeWasm("MVP WASM reader", () => {
     }
   });
 
+  it("parses escaped JSON strings in TOC chunk names", async () => {
+    const wasm = await loadWasm();
+    const payload = buildPayloadWithToc(
+      `{"version":0,"tocEncoding":"json","chunks":[{"name":"\\u0061sset.bin","offset":${PAYLOAD_HEADER_LENGTH},"length":1,"storedLength":1,"compression":"none"}]}`,
+      new Uint8Array([7])
+    );
+    const handle = openWasmPayload(wasm, payload);
+
+    try {
+      expect(listWasmChunks(wasm, handle)).toEqual(["asset.bin"]);
+      expect(readWasmChunk(wasm, handle, "asset.bin")).toEqual(new Uint8Array([7]));
+    } finally {
+      wasm._bd_close(handle);
+    }
+  });
+
   it("returns structured errors for invalid payloads", async () => {
     const wasm = await loadWasm();
     const cases: ReadonlyArray<readonly [string, Uint8Array, number]> = [

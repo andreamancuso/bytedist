@@ -5,9 +5,11 @@ import { fileURLToPath } from "node:url";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const outDir = path.join(repoRoot, "wasm", "dist");
+const buildDir = path.join(repoRoot, "wasm", "build");
 const imageName = "bytedist-wasm-builder:emsdk-5.0.2";
 
 fs.mkdirSync(outDir, { recursive: true });
+fs.mkdirSync(buildDir, { recursive: true });
 
 run("docker", ["build", "-t", imageName, "-f", "wasm/Dockerfile", "."], repoRoot);
 run(
@@ -24,6 +26,49 @@ run(
     "wasm/src/bytedist_wasm.cpp",
     "-O2",
     "-std=c++20",
+    "-c",
+    "-o",
+    "wasm/build/bytedist_wasm.o"
+  ],
+  repoRoot
+);
+run(
+  "docker",
+  [
+    "run",
+    "--rm",
+    "-v",
+    `${repoRoot}:/work`,
+    "-w",
+    "/work",
+    imageName,
+    "emcc",
+    "wasm/vendor/yyjson/yyjson.c",
+    "-O2",
+    "-std=c99",
+    "-DYYJSON_DISABLE_WRITER=1",
+    "-DYYJSON_DISABLE_UTILS=1",
+    "-DYYJSON_DISABLE_INCR_READER=1",
+    "-c",
+    "-o",
+    "wasm/build/yyjson.o"
+  ],
+  repoRoot
+);
+run(
+  "docker",
+  [
+    "run",
+    "--rm",
+    "-v",
+    `${repoRoot}:/work`,
+    "-w",
+    "/work",
+    imageName,
+    "emcc",
+    "wasm/build/bytedist_wasm.o",
+    "wasm/build/yyjson.o",
+    "-O2",
     "-s",
     "MODULARIZE=1",
     "-s",

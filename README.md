@@ -215,12 +215,14 @@ npm run example:basic
 npm run example:browser-gallery
 npm run example:single-file-html
 npm run example:interactive-document
+npm run example:open-museum-pack
 npm run example:vite
 npm run example:all
 ```
 
 The examples cover Node pack/read/verify, a browser file-input gallery, generated
-single-file HTML, a mixed-resource interactive document payload, and a
+single-file HTML, a mixed-resource interactive document payload, an open museum
+fixture built from Art Institute of Chicago public-domain artwork records, and a
 framework-neutral Vite build.
 
 ## Compression

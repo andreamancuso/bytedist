@@ -23,7 +23,7 @@ The current MVP WASM reader can:
 - reject unsupported payload format versions;
 - validate footer payload length and TOC ranges;
 - verify the footer CRC32 for TOC bytes;
-- parse the JSON TOC;
+- parse the JSON TOC through vendored yyjson;
 - validate chunk names, duplicate chunk names, and chunk byte ranges;
 - list chunk names;
 - read selected uncompressed chunks by name or opaque ID.
@@ -81,6 +81,10 @@ npm run wasm:test
 The build uses `emscripten/emsdk:5.0.2` and writes generated files under
 `wasm/dist/`. Generated WASM files are ignored by Git until the package
 distribution shape is finalized.
+
+The WASM reader vendors yyjson `0.12.0` under `wasm/vendor/yyjson/` for TOC JSON
+parsing. yyjson is MIT licensed; its upstream license is included with the
+vendored source.
 
 ## ABI Status
 

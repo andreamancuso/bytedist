@@ -1,6 +1,6 @@
 {
   "name": "bytedist",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "A WASM-friendly binary payload toolkit for offline-capable web artifacts.",
   "license": "MIT",
   "type": "module",
@@ -58,6 +58,7 @@
     "src/vite/client.d.ts",
     "wasm/Dockerfile",
     "wasm/src",
+    "wasm/vendor",
     "CHANGELOG.md",
     "README.md",
     "SECURITY.md",
@@ -79,8 +80,9 @@
     "example:browser-gallery": "npm run build && node examples/browser-gallery.mjs",
     "example:single-file-html": "npm run build && node examples/single-file-html.mjs",
     "example:interactive-document": "npm run build && node examples/interactive-document.mjs",
+    "example:open-museum-pack": "npm run build && node examples/open-museum-pack.mjs",
     "example:vite": "npm run build && vite build examples/vite-single-file --config examples/vite-single-file/vite.config.mjs",
-    "example:all": "npm run build && node examples/basic.mjs && node examples/browser-gallery.mjs && node examples/single-file-html.mjs && node examples/interactive-document.mjs && vite build examples/vite-single-file --config examples/vite-single-file/vite.config.mjs"
+    "example:all": "npm run build && node examples/basic.mjs && node examples/browser-gallery.mjs && node examples/single-file-html.mjs && node examples/interactive-document.mjs && node examples/open-museum-pack.mjs && vite build examples/vite-single-file --config examples/vite-single-file/vite.config.mjs"
   },
   "keywords": [
     "binary",

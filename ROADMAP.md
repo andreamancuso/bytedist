@@ -15,7 +15,7 @@ embedding, and supporting tooling.
 As of May 9, 2026, ByteDist is published on npm:
 
 - package: [`bytedist`](https://www.npmjs.com/package/bytedist)
-- version: `0.1.0-alpha.1`
+- version: `0.1.0-alpha.2`
 - dist-tags: `alpha` and `latest`
 - install: `npm install bytedist@alpha`
 - package format: ESM-first npm package
@@ -46,7 +46,8 @@ The first public alpha includes:
   lifecycle, and HTTP range loading.
 - Single-file HTML payload and WASM embedding helpers using non-executable data
   blocks.
-- Experimental WASM reader/validator wrapper with Emscripten build scripts.
+- Experimental WASM reader/validator wrapper with Emscripten build scripts and
+  vendored yyjson TOC parsing.
 - Optional Vite build plugin and framework-neutral examples.
 - Docs for getting started, format, browser loading, single-file HTML, metadata,
   deterministic builds, signing, extraction safety, performance, compatibility,

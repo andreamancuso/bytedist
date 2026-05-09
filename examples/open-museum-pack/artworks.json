@@ -1,0 +1,32 @@
+[
+  {
+    "id": 27992,
+    "title": "A Sunday on La Grande Jatte - 1884",
+    "artist": "Georges Seurat",
+    "date": "1884/86",
+    "imageChunk": "c/2d484387",
+    "imageFile": "la-grande-jatte.jpg",
+    "imageId": "2d484387-2509-5e8e-2c43-22f9981972eb",
+    "imageWidth": 843,
+    "imageHeight": 565,
+    "sourceUrl": "https://www.artic.edu/artworks/27992/a-sunday-on-la-grande-jatte-1884",
+    "apiUrl": "https://api.artic.edu/api/v1/artworks/27992",
+    "imageUrl": "https://www.artic.edu/iiif/2/2d484387-2509-5e8e-2c43-22f9981972eb/full/843,/0/default.jpg",
+    "rights": "Public Domain"
+  },
+  {
+    "id": 28560,
+    "title": "The Bedroom",
+    "artist": "Vincent van Gogh",
+    "date": "1889",
+    "imageChunk": "c/6644829f",
+    "imageFile": "the-bedroom.jpg",
+    "imageId": "6644829f-f292-c5c4-a73c-0356a6fdbf0d",
+    "imageWidth": 843,
+    "imageHeight": 660,
+    "sourceUrl": "https://www.artic.edu/artworks/28560/the-bedroom",
+    "apiUrl": "https://api.artic.edu/api/v1/artworks/28560",
+    "imageUrl": "https://www.artic.edu/iiif/2/6644829f-f292-c5c4-a73c-0356a6fdbf0d/full/843,/0/default.jpg",
+    "rights": "Public Domain"
+  }
+]

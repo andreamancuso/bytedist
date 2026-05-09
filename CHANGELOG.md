@@ -6,6 +6,13 @@ ByteDist package versions follow SemVer. The `.bytedist` payload format has a
 separate format version; the current payload format is version `0` and remains
 pre-1.0.
 
+## 0.1.0-alpha.2 - 2026-05-09
+
+### Changed
+
+- Replaced the experimental WASM reader's embedded custom JSON parser with
+  vendored yyjson `0.12.0` for JSON TOC parsing.
+
 ## 0.1.0-alpha.1 - 2026-05-09
 
 ### Fixed

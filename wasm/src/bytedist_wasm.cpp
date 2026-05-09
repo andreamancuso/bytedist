@@ -1,5 +1,4 @@
 #include <algorithm>
-#include <cctype>
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
@@ -9,10 +8,10 @@
 #include <optional>
 #include <set>
 #include <string>
-#include <string_view>
 #include <utility>
-#include <variant>
 #include <vector>
+
+#include "../vendor/yyjson/yyjson.h"
 
 namespace {
 
@@ -29,15 +28,6 @@ enum ErrorCode : int32_t {
   integrity_error = 3,
   not_found_error = 4,
   compression_error = 5
-};
-
-struct JsonValue;
-using JsonArray = std::vector<JsonValue>;
-using JsonObject = std::map<std::string, JsonValue>;
-
-struct JsonValue {
-  using Value = std::variant<std::nullptr_t, bool, double, std::string, JsonArray, JsonObject>;
-  Value value;
 };
 
 struct Chunk {
@@ -111,336 +101,46 @@ uint32_t crc32(const uint8_t* data, size_t length) {
   return crc ^ 0xffffffffU;
 }
 
-class JsonParser {
- public:
-  explicit JsonParser(std::string_view input) : input_(input) {}
-
-  std::optional<JsonValue> parse() {
-    auto value = parse_value();
-    skip_ws();
-
-    if (!value.has_value() || position_ != input_.size()) {
-      return std::nullopt;
-    }
-
-    return value;
-  }
-
- private:
-  std::string_view input_;
-  size_t position_ = 0;
-
-  void skip_ws() {
-    while (position_ < input_.size() &&
-           (input_[position_] == ' ' || input_[position_] == '\n' || input_[position_] == '\r' ||
-            input_[position_] == '\t')) {
-      position_ += 1;
-    }
-  }
-
-  bool consume(char expected) {
-    skip_ws();
-    if (position_ >= input_.size() || input_[position_] != expected) {
-      return false;
-    }
-    position_ += 1;
-    return true;
-  }
-
-  std::optional<JsonValue> parse_value() {
-    skip_ws();
-    if (position_ >= input_.size()) {
-      return std::nullopt;
-    }
-
-    const char current = input_[position_];
-    if (current == '{') {
-      return parse_object();
-    }
-    if (current == '[') {
-      return parse_array();
-    }
-    if (current == '"') {
-      auto text = parse_string();
-      if (!text.has_value()) {
-        return std::nullopt;
-      }
-      return JsonValue{*text};
-    }
-    if (current == 't' && consume_literal("true")) {
-      return JsonValue{true};
-    }
-    if (current == 'f' && consume_literal("false")) {
-      return JsonValue{false};
-    }
-    if (current == 'n' && consume_literal("null")) {
-      return JsonValue{nullptr};
-    }
-    if (current == '-' || std::isdigit(static_cast<unsigned char>(current)) != 0) {
-      return parse_number();
-    }
-
+std::optional<std::string> get_string(yyjson_val* object, const char* key) {
+  yyjson_val* value = yyjson_obj_get(object, key);
+  if (!yyjson_is_str(value)) {
     return std::nullopt;
   }
 
-  bool consume_literal(std::string_view literal) {
-    if (input_.substr(position_, literal.size()) != literal) {
-      return false;
-    }
-    position_ += literal.size();
-    return true;
-  }
-
-  std::optional<JsonValue> parse_object() {
-    if (!consume('{')) {
-      return std::nullopt;
-    }
-
-    JsonObject object;
-    skip_ws();
-    if (consume('}')) {
-      return JsonValue{object};
-    }
-
-    while (true) {
-      auto key = parse_string();
-      if (!key.has_value() || !consume(':')) {
-        return std::nullopt;
-      }
-
-      auto value = parse_value();
-      if (!value.has_value()) {
-        return std::nullopt;
-      }
-
-      object[*key] = *value;
-
-      if (consume('}')) {
-        return JsonValue{object};
-      }
-      if (!consume(',')) {
-        return std::nullopt;
-      }
-    }
-  }
-
-  std::optional<JsonValue> parse_array() {
-    if (!consume('[')) {
-      return std::nullopt;
-    }
-
-    JsonArray array;
-    skip_ws();
-    if (consume(']')) {
-      return JsonValue{array};
-    }
-
-    while (true) {
-      auto value = parse_value();
-      if (!value.has_value()) {
-        return std::nullopt;
-      }
-
-      array.push_back(*value);
-
-      if (consume(']')) {
-        return JsonValue{array};
-      }
-      if (!consume(',')) {
-        return std::nullopt;
-      }
-    }
-  }
-
-  std::optional<JsonValue> parse_number() {
-    const size_t start = position_;
-    if (input_[position_] == '-') {
-      position_ += 1;
-    }
-
-    if (position_ >= input_.size()) {
-      return std::nullopt;
-    }
-
-    if (input_[position_] == '0') {
-      position_ += 1;
-    } else if (std::isdigit(static_cast<unsigned char>(input_[position_])) != 0) {
-      while (position_ < input_.size() &&
-             std::isdigit(static_cast<unsigned char>(input_[position_])) != 0) {
-        position_ += 1;
-      }
-    } else {
-      return std::nullopt;
-    }
-
-    if (position_ < input_.size() && input_[position_] == '.') {
-      position_ += 1;
-      if (position_ >= input_.size() ||
-          std::isdigit(static_cast<unsigned char>(input_[position_])) == 0) {
-        return std::nullopt;
-      }
-      while (position_ < input_.size() &&
-             std::isdigit(static_cast<unsigned char>(input_[position_])) != 0) {
-        position_ += 1;
-      }
-    }
-
-    if (position_ < input_.size() && (input_[position_] == 'e' || input_[position_] == 'E')) {
-      position_ += 1;
-      if (position_ < input_.size() && (input_[position_] == '+' || input_[position_] == '-')) {
-        position_ += 1;
-      }
-      if (position_ >= input_.size() ||
-          std::isdigit(static_cast<unsigned char>(input_[position_])) == 0) {
-        return std::nullopt;
-      }
-      while (position_ < input_.size() &&
-             std::isdigit(static_cast<unsigned char>(input_[position_])) != 0) {
-        position_ += 1;
-      }
-    }
-
-    const std::string number(input_.substr(start, position_ - start));
-    char* end = nullptr;
-    const double parsed = std::strtod(number.c_str(), &end);
-    if (end == nullptr || *end != '\0') {
-      return std::nullopt;
-    }
-
-    return JsonValue{parsed};
-  }
-
-  std::optional<std::string> parse_string() {
-    skip_ws();
-    if (position_ >= input_.size() || input_[position_] != '"') {
-      return std::nullopt;
-    }
-    position_ += 1;
-
-    std::string output;
-    while (position_ < input_.size()) {
-      const char current = input_[position_++];
-      if (current == '"') {
-        return output;
-      }
-
-      if (static_cast<unsigned char>(current) < 0x20U) {
-        return std::nullopt;
-      }
-
-      if (current != '\\') {
-        output.push_back(current);
-        continue;
-      }
-
-      if (position_ >= input_.size()) {
-        return std::nullopt;
-      }
-
-      const char escape = input_[position_++];
-      switch (escape) {
-        case '"':
-        case '\\':
-        case '/':
-          output.push_back(escape);
-          break;
-        case 'b':
-          output.push_back('\b');
-          break;
-        case 'f':
-          output.push_back('\f');
-          break;
-        case 'n':
-          output.push_back('\n');
-          break;
-        case 'r':
-          output.push_back('\r');
-          break;
-        case 't':
-          output.push_back('\t');
-          break;
-        case 'u': {
-          auto code_point = parse_hex4();
-          if (!code_point.has_value()) {
-            return std::nullopt;
-          }
-          append_utf8(output, *code_point);
-          break;
-        }
-        default:
-          return std::nullopt;
-      }
-    }
-
+  const char* text = yyjson_get_str(value);
+  if (text == nullptr) {
     return std::nullopt;
   }
 
-  std::optional<uint32_t> parse_hex4() {
-    if (position_ + 4 > input_.size()) {
-      return std::nullopt;
-    }
-
-    uint32_t value = 0;
-    for (int index = 0; index < 4; index += 1) {
-      const char c = input_[position_++];
-      value <<= 4U;
-      if (c >= '0' && c <= '9') {
-        value |= static_cast<uint32_t>(c - '0');
-      } else if (c >= 'a' && c <= 'f') {
-        value |= static_cast<uint32_t>(10 + c - 'a');
-      } else if (c >= 'A' && c <= 'F') {
-        value |= static_cast<uint32_t>(10 + c - 'A');
-      } else {
-        return std::nullopt;
-      }
-    }
-
-    return value;
-  }
-
-  static void append_utf8(std::string& output, uint32_t code_point) {
-    if (code_point <= 0x7FU) {
-      output.push_back(static_cast<char>(code_point));
-    } else if (code_point <= 0x7FFU) {
-      output.push_back(static_cast<char>(0xC0U | (code_point >> 6U)));
-      output.push_back(static_cast<char>(0x80U | (code_point & 0x3FU)));
-    } else {
-      output.push_back(static_cast<char>(0xE0U | (code_point >> 12U)));
-      output.push_back(static_cast<char>(0x80U | ((code_point >> 6U) & 0x3FU)));
-      output.push_back(static_cast<char>(0x80U | (code_point & 0x3FU)));
-    }
-  }
-};
-
-const JsonObject* as_object(const JsonValue& value) {
-  return std::get_if<JsonObject>(&value.value);
+  return std::string(text, yyjson_get_len(value));
 }
 
-const JsonArray* as_array(const JsonValue& value) {
-  return std::get_if<JsonArray>(&value.value);
-}
-
-const std::string* get_string(const JsonObject& object, const char* key) {
-  const auto found = object.find(key);
-  if (found == object.end()) {
-    return nullptr;
-  }
-  return std::get_if<std::string>(&found->second.value);
-}
-
-std::optional<uint64_t> get_u64(const JsonObject& object, const char* key) {
-  const auto found = object.find(key);
-  if (found == object.end()) {
+std::optional<uint64_t> get_u64(yyjson_val* object, const char* key) {
+  yyjson_val* value = yyjson_obj_get(object, key);
+  if (yyjson_is_uint(value)) {
+    const uint64_t number = yyjson_get_uint(value);
+    if (number <= 9007199254740991ULL) {
+      return number;
+    }
     return std::nullopt;
   }
 
-  const auto* number = std::get_if<double>(&found->second.value);
-  if (number == nullptr || *number < 0 || *number > 9007199254740991.0 ||
-      std::floor(*number) != *number) {
+  if (yyjson_is_sint(value)) {
+    const int64_t number = yyjson_get_sint(value);
+    if (number >= 0 && static_cast<uint64_t>(number) <= 9007199254740991ULL) {
+      return static_cast<uint64_t>(number);
+    }
     return std::nullopt;
   }
 
-  return static_cast<uint64_t>(*number);
+  if (yyjson_is_real(value)) {
+    const double number = yyjson_get_real(value);
+    if (number >= 0 && number <= 9007199254740991.0 && std::floor(number) == number) {
+      return static_cast<uint64_t>(number);
+    }
+  }
+
+  return std::nullopt;
 }
 
 bool is_alpha_ascii(char value) {
@@ -539,80 +239,85 @@ bool parse_archive(std::unique_ptr<Archive> archive, int32_t& handle) {
 
   const std::string toc_json(reinterpret_cast<const char*>(toc_data), static_cast<size_t>(toc_length));
   archive->toc_json = toc_json;
-  JsonParser parser(toc_json);
-  auto parsed = parser.parse();
-  if (!parsed.has_value()) {
+  yyjson_doc* doc = yyjson_read(toc_json.data(), toc_json.size(), 0);
+  if (doc == nullptr) {
     set_error(format_error, "ByteDist TOC is not valid JSON.");
     return false;
   }
 
-  const JsonObject* toc = as_object(*parsed);
-  if (toc == nullptr) {
+  yyjson_val* toc = yyjson_doc_get_root(doc);
+  if (!yyjson_is_obj(toc)) {
+    yyjson_doc_free(doc);
     set_error(format_error, "ByteDist TOC must be an object.");
     return false;
   }
 
-  auto toc_version = get_u64(*toc, "version");
+  auto toc_version = get_u64(toc, "version");
   if (!toc_version.has_value() || *toc_version != payload_format_version) {
+    yyjson_doc_free(doc);
     set_error(format_error, "ByteDist TOC has an unsupported version.");
     return false;
   }
 
-  const auto* toc_encoding = get_string(*toc, "tocEncoding");
-  if (toc_encoding == nullptr || *toc_encoding != "json") {
+  const auto toc_encoding = get_string(toc, "tocEncoding");
+  if (!toc_encoding.has_value() || *toc_encoding != "json") {
+    yyjson_doc_free(doc);
     set_error(format_error, "ByteDist TOC has an unsupported encoding.");
     return false;
   }
 
-  const auto chunks_found = toc->find("chunks");
-  if (chunks_found == toc->end()) {
-    set_error(format_error, "ByteDist TOC chunks must be an array.");
-    return false;
-  }
-
-  const JsonArray* chunks = as_array(chunks_found->second);
-  if (chunks == nullptr) {
+  yyjson_val* chunks = yyjson_obj_get(toc, "chunks");
+  if (!yyjson_is_arr(chunks)) {
+    yyjson_doc_free(doc);
     set_error(format_error, "ByteDist TOC chunks must be an array.");
     return false;
   }
 
   std::set<std::string> seen_names;
-  for (const auto& chunk_value : *chunks) {
-    const JsonObject* chunk_object = as_object(chunk_value);
-    if (chunk_object == nullptr) {
+  size_t chunk_index = 0;
+  size_t chunk_count = 0;
+  yyjson_val* chunk_object = nullptr;
+  yyjson_arr_foreach(chunks, chunk_index, chunk_count, chunk_object) {
+    if (!yyjson_is_obj(chunk_object)) {
+      yyjson_doc_free(doc);
       set_error(format_error, "ByteDist TOC chunk must be an object.");
       return false;
     }
 
-    const auto* name = get_string(*chunk_object, "name");
-    const auto offset = get_u64(*chunk_object, "offset");
-    const auto length = get_u64(*chunk_object, "length");
-    const auto stored_length = get_u64(*chunk_object, "storedLength");
-    const auto* compression = get_string(*chunk_object, "compression");
+    const auto name = get_string(chunk_object, "name");
+    const auto offset = get_u64(chunk_object, "offset");
+    const auto length = get_u64(chunk_object, "length");
+    const auto stored_length = get_u64(chunk_object, "storedLength");
+    const auto compression = get_string(chunk_object, "compression");
 
-    if (name == nullptr || !offset.has_value() || !length.has_value() ||
-        !stored_length.has_value() || compression == nullptr) {
+    if (!name.has_value() || !offset.has_value() || !length.has_value() ||
+        !stored_length.has_value() || !compression.has_value()) {
+      yyjson_doc_free(doc);
       set_error(format_error, "ByteDist TOC chunk has invalid required fields.");
       return false;
     }
 
     if (!is_valid_chunk_name(*name)) {
+      yyjson_doc_free(doc);
       set_error(format_error, "Invalid ByteDist chunk name.");
       return false;
     }
 
     if (!seen_names.insert(*name).second) {
+      yyjson_doc_free(doc);
       set_error(format_error, "Duplicate ByteDist chunk name in TOC.");
       return false;
     }
 
     if (*compression == "none" && *stored_length != *length) {
+      yyjson_doc_free(doc);
       set_error(compression_error, "ByteDist chunk has different stored and logical lengths without compression.");
       return false;
     }
 
     if (*offset < payload_header_length || *offset > toc_offset ||
         *stored_length > toc_offset - *offset) {
+      yyjson_doc_free(doc);
       set_error(format_error, "ByteDist chunk points outside the chunk data region.");
       return false;
     }
@@ -620,6 +325,7 @@ bool parse_archive(std::unique_ptr<Archive> archive, int32_t& handle) {
     archive->chunks.push_back(Chunk{*name, *offset, *length, *stored_length, *compression});
   }
 
+  yyjson_doc_free(doc);
   handle = next_handle++;
   archives[handle] = std::move(archive);
   clear_error();
