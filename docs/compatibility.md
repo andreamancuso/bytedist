@@ -69,7 +69,9 @@ ByteDist is ESM-first and uses package exports.
 | esbuild      | Expected | Core/browser/html entrypoints are ESM; not continuously tested yet. |
 
 The core package does not require Vite. The Vite plugin is optional and keeps
-Vite as an optional peer dependency.
+Vite as an optional peer dependency. The published peer range is
+`^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0-0`; the plugin remains build-only and the
+repo's continuous tests currently run against the dev dependency version.
 
 ## Manual Smoke Checks
 

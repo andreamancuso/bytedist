@@ -10,8 +10,12 @@ does not make the core ByteDist package depend on Vite at runtime.
 Vite is an optional peer dependency for ByteDist:
 
 ```sh
-npm install bytedist vite
+npm install bytedist@alpha vite
 ```
+
+The optional peer range is
+`^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0-0`. The core package does not import Vite
+at runtime; only consumers that import `bytedist/vite` need Vite installed.
 
 For TypeScript projects that import the virtual metadata module, add this type
 reference somewhere included by your `tsconfig.json`:

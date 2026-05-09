@@ -6,6 +6,13 @@ ByteDist package versions follow SemVer. The `.bytedist` payload format has a
 separate format version; the current payload format is version `0` and remains
 pre-1.0.
 
+## 0.1.0-alpha.1 - 2026-05-09
+
+### Fixed
+
+- Widened the optional Vite peer dependency range to support consumers using
+  Vite 5, 6, 7, and 8 prerelease/current lines without npm `ERESOLVE` failures.
+
 ## 0.1.0-alpha.0 - 2026-05-09
 
 First alpha release.

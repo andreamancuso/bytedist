@@ -15,7 +15,7 @@ embedding, and supporting tooling.
 As of May 9, 2026, ByteDist is published on npm:
 
 - package: [`bytedist`](https://www.npmjs.com/package/bytedist)
-- version: `0.1.0-alpha.0`
+- version: `0.1.0-alpha.1`
 - dist-tags: `alpha` and `latest`
 - install: `npm install bytedist@alpha`
 - package format: ESM-first npm package
