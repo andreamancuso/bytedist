@@ -2,13 +2,12 @@
 
 ## Product Definition
 
-ByteDist is an open-source toolkit for packing arbitrary files and metadata into
-a versioned binary payload that can be read, verified, optionally decompressed,
-and optionally embedded with a runtime into a single self-contained HTML
-artifact.
+ByteDist is an open-source toolkit for packaging arbitrary files and metadata
+into portable web artifacts that can be read, verified, optionally decompressed,
+and optionally embedded with a runtime into a single self-contained HTML file.
 
 The library is app-agnostic. A host application owns its manifest schema and
-resource model; ByteDist owns the payload format, packing, reading, verification,
+resource model; ByteDist owns the packaging format, reading, verification,
 embedding, and supporting tooling.
 
 ## Current Release
@@ -220,8 +219,8 @@ npm run perf:baseline:quick
 
 ## Strategic Recommendation
 
-Keep ByteDist focused on being a generic, boring, well-documented binary payload
-toolkit.
+Keep ByteDist focused on being a generic, boring, well-documented web artifact
+packaging toolkit.
 
 The next useful work is downstream dogfooding with the live npm package. Any
 lessons from that work should be translated into generic ByteDist improvements:

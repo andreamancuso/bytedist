@@ -1,7 +1,7 @@
 # Getting Started
 
 This guide shows the shortest path from loose files to a readable `.bytedist`
-payload.
+asset package.
 
 ## Install
 
@@ -20,8 +20,8 @@ npm run build
 
 ## Prepare Input Files
 
-A ByteDist payload usually contains an application-defined manifest and any
-binary or text resources that manifest references. For a minimal payload, create
+A `.bytedist` file usually contains an application-defined manifest and any
+binary or text resources that manifest references. For a minimal package, create
 an input directory like this:
 
 ```text
@@ -53,7 +53,7 @@ requires `--force` before overwriting an existing output file.
 
 ## Inspect
 
-Inspect the payload structure:
+Inspect the package structure:
 
 ```sh
 npx bytedist inspect artifact.bytedist
@@ -76,7 +76,7 @@ it does not make a client-delivered artifact tamper-proof.
 
 ## Read From Node.js
 
-Read the payload from an application script:
+Read the `.bytedist` file from an application script:
 
 ```ts
 import { readFile } from "node:fs/promises";
@@ -106,5 +106,5 @@ const imageBytes = await archive.readBytes("assets/image.webp");
 - Use [`single-file-html.md`](single-file-html.md) for standalone HTML exports.
 - Use [`metadata-and-manifests.md`](metadata-and-manifests.md) for manifest and
   reserved namespace conventions.
-- Read [`security-model.md`](security-model.md) before using ByteDist as part of
-  a hardened export workflow.
+- Read [`security-model.md`](security-model.md) before shipping client-delivered
+  artifacts.

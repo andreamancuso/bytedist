@@ -1,11 +1,11 @@
 # ByteDist
 
-ByteDist is a generic, open-source binary payload toolkit for offline-capable web
-artifacts.
+ByteDist is a TypeScript toolkit for packaging application manifests and binary
+resources into portable web artifacts.
 
 It helps applications package a manifest plus binary resources into one
-runtime-readable `.bytedist` payload that can be inspected, verified, loaded in
-Node.js or browsers, and embedded into a self-contained HTML export.
+runtime-readable `.bytedist` asset package that can be inspected, verified,
+loaded in Node.js or browsers, and embedded into a self-contained HTML export.
 
 ByteDist is useful when loose files, large inline JSON, or visible base64 media
 blobs make an export harder to ship, inspect, or maintain.
@@ -67,7 +67,7 @@ npx bytedist sign artifact.bytedist --key private.pem --out artifact.bytedist.si
 npx bytedist verify-signature artifact.bytedist --key public.pem --signature artifact.bytedist.sig.json
 ```
 
-Bundle an existing payload into one HTML file:
+Bundle an existing `.bytedist` file into one HTML file:
 
 ```sh
 npx bytedist bundle-html \
@@ -261,7 +261,8 @@ const archive = await openPayload(payload, {
 ## How It Compares
 
 ByteDist is not trying to replace every packaging format. Its niche is
-browser-runtime-friendly payloads for application-owned manifests and resources.
+browser-runtime-friendly asset packages for application-owned manifests and
+resources.
 
 | Tool or format           | How it differs                                                                                                                                               |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
