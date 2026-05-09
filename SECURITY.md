@@ -27,15 +27,23 @@ Integrity checks can detect corruption or tampering only when the verifier and
 its execution environment are trusted. Integrity is not the same as access
 control.
 
-If signing is added in a later release, signatures will prove provenance only
-under a clearly documented key and trust model.
+ByteDist's v0 footer CRC32 is a non-cryptographic corruption check for TOC bytes.
+It is not an authenticity check and does not prove that a payload came from a
+trusted publisher.
+
+Detached payload signatures can prove provenance only under the caller's public
+key trust model. A valid signature means the detached provenance envelope was
+signed by the holder of the matching private key. It does not make
+client-delivered assets secret, unextractable, or tamper-proof, and it does not
+protect private keys embedded into browser artifacts. ByteDist's browser/runtime
+verification APIs are designed to use public keys only.
 
 ## WASM
 
-WASM support is planned as a narrow reader/validator path for hardened standalone
-artifacts. WASM is not a security boundary. It can raise implementation friction
-and help keep parsing behavior consistent, but it does not make assets
-unextractable.
+WASM support is an experimental narrow reader/validator path for hardened
+standalone artifacts. WASM is not a security boundary. It can raise
+implementation friction and help keep parsing behavior consistent, but it does
+not make assets unextractable.
 
 ## Reporting Vulnerabilities
 
