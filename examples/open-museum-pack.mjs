@@ -71,7 +71,9 @@ await archive.verify();
 
 const loadedManifest = await archive.readJson("manifest.json");
 const toc = archive.getToc();
-const imageBytes = await Promise.all(loadedManifest.artworks.map((artwork) => archive.readBytes(artwork.image)));
+const imageBytes = await Promise.all(
+  loadedManifest.artworks.map((artwork) => archive.readBytes(artwork.image))
+);
 
 logSuccess("Open museum pack example complete", [
   `payload: ${path.relative(process.cwd(), payloadPath)}`,
