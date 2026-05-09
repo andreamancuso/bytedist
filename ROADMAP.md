@@ -29,7 +29,7 @@ HTML template + viewer JS + WASM decoder + .bytedist
 
 ## Current Progress
 
-As of May 9, 2026, the repository has completed the framing and setup work plus the first writer, reader, integrity, Node filesystem helper, CLI, browser loader, single-file HTML embedding, HTML bundler, compression-adapter, format-docs, README, example, experimental WASM-reader, Vite, deterministic-build, metadata/manifest convention, extraction-safety, performance-baseline, and compatibility-matrix slices:
+As of May 9, 2026, the repository has completed the framing and setup work plus the first writer, reader, integrity, Node filesystem helper, CLI, browser loader, single-file HTML embedding, HTML bundler, compression-adapter, format-docs, README, example, experimental WASM-reader, Vite, deterministic-build, metadata/manifest convention, extraction-safety, performance-baseline, compatibility-matrix, and documentation-site slices:
 
 - Stage 0 project framing is complete in `README.md`, with generic product language, target audience, license, and explicit no-DRM/no-secrets language.
 - Stage 1 repository setup is complete with npm package metadata, TypeScript, Vitest, Prettier, declaration-emitting build, package dry-run support, and GitHub Actions CI.
@@ -149,8 +149,14 @@ As of May 9, 2026, the repository has completed the framing and setup work plus 
   - `docs/compatibility.md` documents browser, Node, and bundler compatibility status;
   - CI runs the verification job on Node 20 and Node 22;
   - Vite and no-bundler paths are documented as tested, while webpack, Rollup, and esbuild are documented as expected but not continuously tested.
+- Stage 26 documentation site is complete:
+  - `docs/index.md` provides a plain-Markdown documentation entry point;
+  - `docs/getting-started.md` shows install, pack, inspect, verify, and reader usage;
+  - `docs/browser.md` now covers fetch loading, embedded payload loading, chunk reads, range loading, and object URL lifecycle;
+  - `docs/single-file-html.md` documents bundling, base64 overhead, local file caveats, and embedded-vs-external payload tradeoffs;
+  - `docs/security-model.md` documents no-DRM/no-secrets limits, integrity limits, signing limits, WASM limits, and hardening terminology.
 
-Built-in compression codecs, WASM compression parity, and automated browser compatibility tests are still future work.
+Built-in compression codecs, WASM compression parity, automated browser compatibility tests, and release preparation are still future work.
 
 ## Important Product Language
 
@@ -2320,6 +2326,8 @@ Progress:
 
 ## Stage 26: Documentation Site
 
+Status: Complete for a plain-Markdown documentation index and core adoption guides. No static site generator has been added.
+
 ### 26.1 Choose Docs Tooling
 
 Options:
@@ -2333,11 +2341,19 @@ Acceptance criteria:
 
 - Docs can be hosted statically.
 
+Progress:
+
+- Complete. The documentation site is currently plain Markdown under `docs/`, with `docs/index.md` as the entry point. This keeps the docs statically hostable without adding a docs build pipeline.
+
 ### 26.2 Write Getting Started
 
 Acceptance criteria:
 
 - User can install, pack, inspect, and read a payload in under ten minutes.
+
+Progress:
+
+- Complete. `docs/getting-started.md` covers installation, local repo setup, directory packing, inspection, verification, and a minimal `openPayload` read flow.
 
 ### 26.3 Write Browser Guide
 
@@ -2347,6 +2363,10 @@ Acceptance criteria:
 - Shows embedded loading.
 - Shows reading images/text/JSON.
 
+Progress:
+
+- Complete. `docs/browser.md` covers full-buffer URL loading, file input loading, embedded payload loading, JSON/text/binary chunk reads, HTTP range loading, cache behavior, and object URL lifecycle.
+
 ### 26.4 Write Single-File Guide
 
 Acceptance criteria:
@@ -2355,12 +2375,20 @@ Acceptance criteria:
 - Explains local file opening caveats.
 - Explains when to prefer multi-file output.
 
+Progress:
+
+- Complete. `docs/single-file-html.md` documents CLI bundling, programmatic embedding, base64 size and memory overhead, `file://` caveats, and embedded-vs-external payload selection.
+
 ### 26.5 Write Security Model Guide
 
 Acceptance criteria:
 
 - No exaggerated claims.
 - Clear explanation of what hardening means.
+
+Progress:
+
+- Complete. `docs/security-model.md` explains ByteDist as packaging, integrity, provenance, and practical hardening; it explicitly states that ByteDist is not DRM, does not hide secrets, and cannot prevent determined extraction.
 
 ## Stage 27: Release Preparation
 

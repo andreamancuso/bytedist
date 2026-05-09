@@ -30,7 +30,7 @@ blobs make an export harder to ship, inspect, or maintain.
 
 The current payload format is version `0` and is still pre-1.0. See
 [`docs/format.md`](docs/format.md) for the binary layout and compatibility
-notes.
+notes. The documentation index starts at [`docs/index.md`](docs/index.md).
 
 ## Quick Start
 
@@ -280,6 +280,9 @@ Available today:
 - Detached payload signing and signature verification.
 - Optional Vite build plugin in `bytedist/vite`.
 - Adapter-based compression plumbing.
+- Documentation index in [`docs/index.md`](docs/index.md).
+- Getting started guide in [`docs/getting-started.md`](docs/getting-started.md).
+- Security model guide in [`docs/security-model.md`](docs/security-model.md).
 - Format documentation in [`docs/format.md`](docs/format.md).
 - Metadata and manifest notes in
   [`docs/metadata-and-manifests.md`](docs/metadata-and-manifests.md).
@@ -289,6 +292,7 @@ Available today:
 - Deterministic build notes in
   [`docs/deterministic-builds.md`](docs/deterministic-builds.md).
 - Browser loading notes in [`docs/browser.md`](docs/browser.md).
+- Single-file HTML notes in [`docs/single-file-html.md`](docs/single-file-html.md).
 - Signing and provenance notes in [`docs/signing.md`](docs/signing.md).
 - Vite integration notes in [`docs/vite.md`](docs/vite.md).
 - Experimental WASM reader/validator wrapper in `bytedist/wasm`.
@@ -297,7 +301,8 @@ Available today:
 Planned next:
 
 - built-in compression adapters;
-- broader compatibility notes.
+- automated browser compatibility tests;
+- release preparation.
 
 ## Scripts
 
