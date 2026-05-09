@@ -126,6 +126,12 @@ As of May 8, 2026, the repository has completed the framing and setup work plus 
   - optional WASM embedding and `virtual:bytedist/payload` metadata are supported;
   - `docs/vite.md` documents scope, options, and the build-only posture;
   - `examples/vite-single-file/` provides a framework-neutral Vite example.
+- Stage 21 deterministic builds are complete:
+  - `createPayload` supports explicit `chunkOrder: "input" | "name"`;
+  - `packDirectory` deterministic ordering is covered by repeatability tests;
+  - `computePayloadHash` exposes whole-payload SHA-256 hashes;
+  - `docs/deterministic-builds.md` documents timestamp and caller-metadata policy;
+  - Vite embedded payload determinism is covered for stable inputs.
 
 Built-in compression codecs, WASM compression parity, and broader compatibility notes are still future work.
 
@@ -2062,12 +2068,18 @@ Progress:
 
 ## Stage 21: Deterministic Builds
 
+Status: Complete for explicit in-memory chunk ordering, directory-pack repeatability, whole-payload hash helpers, docs, and Vite embedded-payload repeatability. Caller-provided metadata normalization and built-in codec determinism remain caller-owned until later stages add those features.
+
 ### 21.1 Stable Chunk Ordering
 
 Acceptance criteria:
 
 - Same input produces same chunk order.
 - Tests verify deterministic output except for timestamps if enabled.
+
+Progress:
+
+- Complete. `createPayload` preserves caller input order by default and supports `chunkOrder: "name"` for sorted in-memory chunks. Generated `manifest.json` remains first when `manifest` is supplied. `packDirectory` continues to sort collected chunk names, and tests cover repeated builds plus filesystem creation-order independence.
 
 ### 21.2 Optional Timestamp Control
 
@@ -2078,11 +2090,19 @@ Acceptance criteria:
 - Reproducible builds are possible.
 - Docs explain options.
 
+Progress:
+
+- Complete. ByteDist emits no implicit timestamps in v0. `docs/deterministic-builds.md` explains that caller-provided manifests and metadata are ordinary payload data, so callers must omit or normalize their own timestamp/build fields for reproducible bytes. Tests cover that file mtimes do not affect directory-pack output.
+
 ### 21.3 Stable Hashes
 
 Acceptance criteria:
 
 - Payload hash is stable across runs for identical inputs.
+
+Progress:
+
+- Complete. `computePayloadHash` returns a SHA-256 `PayloadHash` for full payload bytes. Tests cover stable hashes for identical payload bytes and changed hashes for changed bytes.
 
 ## Stage 22: Metadata and Manifests
 

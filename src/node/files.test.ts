@@ -84,6 +84,51 @@ describe("node filesystem helpers", () => {
     await expect(archive.verify()).resolves.toBeUndefined();
   });
 
+  it("produces identical payload bytes for repeated directory packs", async () => {
+    const root = await createTempDir();
+    await writeFixture(root, "z.txt", "z");
+    await writeFixture(root, "nested/a.txt", "a");
+
+    await expect(
+      packDirectory(root, {
+        integrity: "sha256",
+        createdBy: "bytedist-test"
+      })
+    ).resolves.toEqual(
+      await packDirectory(root, {
+        integrity: "sha256",
+        createdBy: "bytedist-test"
+      })
+    );
+  });
+
+  it("sorts directory chunks independently of filesystem creation order", async () => {
+    const left = await createTempDir();
+    const right = await createTempDir();
+    await writeFixture(left, "z.txt", "z");
+    await writeFixture(left, "a.txt", "a");
+    await writeFixture(right, "a.txt", "a");
+    await writeFixture(right, "z.txt", "z");
+
+    const leftPayload = await packDirectory(left, { integrity: "sha256" });
+    const rightPayload = await packDirectory(right, { integrity: "sha256" });
+    const archive = await openPayload(leftPayload);
+
+    expect(archive.list()).toEqual(["a.txt", "z.txt"]);
+    expect(leftPayload).toEqual(rightPayload);
+  });
+
+  it("does not include filesystem mtimes in packed payloads", async () => {
+    const root = await createTempDir();
+    const filePath = await writeFixture(root, "asset.txt", "asset");
+    const before = await packDirectory(root, { integrity: "sha256" });
+
+    await fs.utimes(filePath, new Date("2001-01-01T00:00:00Z"), new Date("2001-01-01T00:00:00Z"));
+    const after = await packDirectory(root, { integrity: "sha256" });
+
+    expect(after).toEqual(before);
+  });
+
   it("passes compression codecs through directory packing", async () => {
     const root = await createTempDir();
     await writeFixture(root, "asset.txt", "aaaaaa");
@@ -179,10 +224,11 @@ async function writeFixture(
   root: string,
   relativePath: string,
   contents: string | Uint8Array
-): Promise<void> {
+): Promise<string> {
   const absolutePath = path.join(root, relativePath);
   await fs.mkdir(path.dirname(absolutePath), { recursive: true });
   await fs.writeFile(absolutePath, contents);
+  return absolutePath;
 }
 
 const fakeShrinkingCodec = {

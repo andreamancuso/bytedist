@@ -16,6 +16,7 @@ blobs make an export harder to ship, inspect, or maintain.
 - Reads payloads through TypeScript APIs in Node.js and browsers.
 - Supports HTTP range loading for hosted external payloads.
 - Verifies per-chunk SHA-256 metadata and TOC CRC32 corruption checks.
+- Supports deterministic chunk ordering and whole-payload SHA-256 hashes.
 - Signs and verifies detached provenance envelopes with public-key signatures.
 - Packs directories and writes payload files through `bytedist/node`.
 - Integrates with Vite builds through the optional `bytedist/vite` plugin.
@@ -68,12 +69,13 @@ The CLI intentionally does not expose a public `extract` command in the MVP.
 Create and read an in-memory payload:
 
 ```ts
-import { createPayload, openPayload } from "bytedist";
+import { computePayloadHash, createPayload, openPayload } from "bytedist";
 
 const text = new TextEncoder().encode("hello");
 
 const payload = await createPayload({
   manifest: { entry: "c/hello" },
+  chunkOrder: "name",
   files: [
     {
       name: "c/hello",
@@ -85,9 +87,11 @@ const payload = await createPayload({
   integrity: "sha256"
 });
 
+const payloadHash = await computePayloadHash(payload);
 const archive = await openPayload(payload);
 
 await archive.verify();
+console.log(payloadHash.value);
 console.log(await archive.readText("c/hello"));
 ```
 
@@ -259,6 +263,8 @@ Available today:
 - Optional Vite build plugin in `bytedist/vite`.
 - Adapter-based compression plumbing.
 - Format documentation in [`docs/format.md`](docs/format.md).
+- Deterministic build notes in
+  [`docs/deterministic-builds.md`](docs/deterministic-builds.md).
 - Browser loading notes in [`docs/browser.md`](docs/browser.md).
 - Signing and provenance notes in [`docs/signing.md`](docs/signing.md).
 - Vite integration notes in [`docs/vite.md`](docs/vite.md).

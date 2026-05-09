@@ -9,6 +9,7 @@ import {
   PAYLOAD_MAGIC_BYTES,
   PayloadCompressionError,
   PayloadFormatError,
+  computePayloadHash,
   createPayload,
   isFooterMagic,
   type PayloadToc
@@ -96,6 +97,92 @@ describe("createPayload", () => {
     expect(toc.chunks.map((chunk) => chunk.name)).toEqual(["a.txt", "b.bin"]);
     expect(toc.chunks[0]?.offset).toBe(PAYLOAD_HEADER_LENGTH);
     expect(toc.chunks[1]?.offset).toBe(PAYLOAD_HEADER_LENGTH + 2);
+  });
+
+  it("preserves input chunk order by default", async () => {
+    const payload = await createPayload({
+      files: [
+        { name: "z.txt", bytes: new Uint8Array([1]) },
+        { name: "a.txt", bytes: new Uint8Array([2]) }
+      ]
+    });
+
+    expect(readToc(payload).chunks.map((chunk) => chunk.name)).toEqual(["z.txt", "a.txt"]);
+  });
+
+  it("can sort caller-provided chunks by name", async () => {
+    const left = await createPayload({
+      chunkOrder: "name",
+      files: [
+        { name: "z.txt", bytes: new Uint8Array([1]) },
+        { name: "a.txt", bytes: new Uint8Array([2]) }
+      ]
+    });
+    const right = await createPayload({
+      chunkOrder: "name",
+      files: [
+        { name: "a.txt", bytes: new Uint8Array([2]) },
+        { name: "z.txt", bytes: new Uint8Array([1]) }
+      ]
+    });
+
+    expect(readToc(left).chunks.map((chunk) => chunk.name)).toEqual(["a.txt", "z.txt"]);
+    expect(left).toEqual(right);
+  });
+
+  it("keeps generated manifests first when sorting chunks by name", async () => {
+    const payload = await createPayload({
+      manifest: { title: "Example" },
+      chunkOrder: "name",
+      files: [
+        { name: "z.txt", bytes: new Uint8Array([1]) },
+        { name: "a.txt", bytes: new Uint8Array([2]) }
+      ]
+    });
+
+    expect(readToc(payload).chunks.map((chunk) => chunk.name)).toEqual([
+      "manifest.json",
+      "a.txt",
+      "z.txt"
+    ]);
+  });
+
+  it("rejects unsupported chunk ordering values at runtime", async () => {
+    await expect(
+      createPayload({
+        chunkOrder: "mtime" as "name",
+        files: [{ name: "asset.bin", bytes: new Uint8Array([1]) }]
+      })
+    ).rejects.toThrow(PayloadFormatError);
+  });
+
+  it("produces identical bytes for identical inputs", async () => {
+    const options = {
+      manifest: { entry: "a.txt" },
+      files: [{ name: "a.txt", bytes: new TextEncoder().encode("hello") }],
+      integrity: "sha256" as const,
+      createdBy: "bytedist-test"
+    };
+
+    await expect(createPayload(options)).resolves.toEqual(await createPayload(options));
+  });
+
+  it("computes stable whole-payload SHA-256 hashes", async () => {
+    const payload = await createPayload({
+      files: [{ name: "asset.bin", bytes: new Uint8Array([1, 2, 3]) }],
+      integrity: "sha256"
+    });
+    const changed = payload.slice();
+    changed[PAYLOAD_HEADER_LENGTH] = 9;
+
+    const hash = await computePayloadHash(payload);
+    const repeatedHash = await computePayloadHash(payload);
+    const changedHash = await computePayloadHash(changed);
+
+    expect(hash).toEqual(repeatedHash);
+    expect(hash.algorithm).toBe("sha256");
+    expect(hash.value).toMatch(/^[0-9a-f]{64}$/);
+    expect(hash.value).not.toBe(changedHash.value);
   });
 
   it("allows empty chunks", async () => {

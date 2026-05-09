@@ -41,6 +41,25 @@ describe("bytedistPlugin", () => {
     expect(await outputContains(root, "embedded:!0")).toBe(true);
   });
 
+  it("embeds identical payload bytes across repeated Vite builds", async () => {
+    const root = await createViteProject({
+      html: htmlWithPayloadMarker(),
+      mainJs: "console.log('deterministic payload');"
+    });
+
+    await runViteBuild(root, {
+      embed: true
+    });
+    const firstHtml = await fs.readFile(path.join(root, "dist", "index.html"), "utf8");
+
+    await runViteBuild(root, {
+      embed: true
+    });
+    const secondHtml = await fs.readFile(path.join(root, "dist", "index.html"), "utf8");
+
+    expect(readEmbeddedPayload(secondHtml)).toEqual(readEmbeddedPayload(firstHtml));
+  });
+
   it("emits a payload asset when emit is enabled", async () => {
     const root = await createViteProject({
       html: htmlWithPayloadMarker(),

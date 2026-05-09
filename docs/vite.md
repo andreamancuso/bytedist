@@ -49,6 +49,8 @@ Default behavior:
 - `emit` defaults to `false` when `embed` is enabled;
 - integrity defaults to `sha256`;
 - `createdBy` defaults to `bytedist/vite`.
+- payload chunk ordering follows `packDirectory`, which sorts collected chunk
+  names deterministically.
 
 ## Options
 
@@ -84,6 +86,10 @@ console.log(metadata.outputName, payloadSize, chunks.length);
 
 The metadata includes payload size, output name, emitted/embedded flags, manifest
 path, chunk count, and public chunk metadata. It does not include chunk bytes.
+
+For repeatable payload bytes, keep input files, manifest content, metadata,
+compression options, and plugin options stable. See
+[`deterministic-builds.md`](deterministic-builds.md) for details.
 
 ## Single-File Output
 

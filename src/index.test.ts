@@ -22,6 +22,7 @@ import {
   assertPayloadMagic,
   assertSupportedFormatVersion,
   assertValidChunkName,
+  computePayloadHash,
   isFooterMagic,
   isPayloadMagic,
   isSupportedFormatVersion,
@@ -147,6 +148,7 @@ describe("public types", () => {
   it("supports planned payload and reader shapes at compile time", () => {
     const options: CreatePayloadOptions = {
       manifest: { title: "Example", version: 1 },
+      chunkOrder: "name",
       files: [
         {
           name: "manifest.json",
@@ -195,6 +197,7 @@ describe("public types", () => {
     };
 
     expect(options.files).toHaveLength(1);
+    expect(computePayloadHash).toBeTypeOf("function");
     expect(opened.getToc().chunks[0]?.name).toBe("manifest.json");
   });
 });

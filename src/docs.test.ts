@@ -14,6 +14,7 @@ describe("public documentation", () => {
     expect(readme).toContain("bytedist bundle-html");
     expect(readme).toContain("createPayload");
     expect(readme).toContain("openPayload");
+    expect(readme).toContain("computePayloadHash");
     expect(readme).toContain("openPayloadFromUrlRange");
     expect(readme).toContain("bytedistPlugin");
     expect(readme).toContain("bytedist/vite");
@@ -28,6 +29,7 @@ describe("public documentation", () => {
     expect(readme).toContain("must not be used to hide secrets");
     expect(readme).toContain("Experimental WASM reader/validator wrapper");
     expect(readme).toContain("Browser loading notes");
+    expect(readme).toContain("Deterministic build notes");
     expect(readme).toContain("Signing and provenance notes");
     expect(readme).toContain("Vite integration notes");
 
@@ -75,6 +77,20 @@ describe("public documentation", () => {
     expect(signingDoc).toContain("bytedist verify-signature");
     expect(signingDoc).toContain("private keys");
     expect(signingDoc).toContain("not DRM");
+  });
+
+  it("documents deterministic build behavior", async () => {
+    const deterministicDoc = await fs.readFile(
+      new URL("../docs/deterministic-builds.md", import.meta.url),
+      "utf8"
+    );
+
+    expect(deterministicDoc).toContain("chunkOrder");
+    expect(deterministicDoc).toContain('"name"');
+    expect(deterministicDoc).toContain("computePayloadHash");
+    expect(deterministicDoc).toContain("does not emit implicit timestamps");
+    expect(deterministicDoc).toContain("packDirectory");
+    expect(deterministicDoc).toContain("not authenticity");
   });
 
   it("documents Vite integration behavior", async () => {

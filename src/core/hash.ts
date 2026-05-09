@@ -1,4 +1,5 @@
 import { PayloadIntegrityError } from "../format/errors.js";
+import type { PayloadHash } from "../format/types.js";
 
 export async function sha256Hex(bytes: Uint8Array): Promise<string> {
   const subtle = globalThis.crypto?.subtle;
@@ -9,6 +10,13 @@ export async function sha256Hex(bytes: Uint8Array): Promise<string> {
   }
 
   return sha256HexWithNodeCrypto(bytes);
+}
+
+export async function computePayloadHash(payloadBytes: Uint8Array): Promise<PayloadHash> {
+  return {
+    algorithm: "sha256",
+    value: await sha256Hex(payloadBytes)
+  };
 }
 
 export function crc32(bytes: Uint8Array): number {

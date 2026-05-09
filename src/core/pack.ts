@@ -47,6 +47,7 @@ interface StoredChunk {
 
 export async function createPayload(options: CreatePayloadOptions): Promise<Uint8Array> {
   validateIntegrityOption(options.integrity);
+  validateChunkOrder(options.chunkOrder);
   validateCompressionName(options.compression ?? DEFAULT_COMPRESSION);
   validateCompressionCodecs(options.compressionCodecs);
 
@@ -113,7 +114,12 @@ function prepareChunks(options: CreatePayloadOptions): PreparedChunk[] {
     );
   }
 
-  for (const file of options.files) {
+  const files =
+    options.chunkOrder === "name"
+      ? [...options.files].sort((left, right) => left.name.localeCompare(right.name))
+      : options.files;
+
+  for (const file of files) {
     addChunk(chunks, seenNames, file, options.manifest !== undefined);
   }
 
@@ -209,6 +215,12 @@ function validateIntegrityOption(integrity: CreatePayloadOptions["integrity"]): 
     throw new PayloadIntegrityError(
       `Unsupported ByteDist integrity algorithm: ${String(integrity)}.`
     );
+  }
+}
+
+function validateChunkOrder(order: CreatePayloadOptions["chunkOrder"]): void {
+  if (order !== undefined && order !== "input" && order !== "name") {
+    throw new PayloadFormatError(`Unsupported ByteDist chunk order: ${String(order)}.`);
   }
 }
 

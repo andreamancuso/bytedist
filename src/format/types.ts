@@ -22,6 +22,8 @@ export type CompressionAlgorithm = typeof DEFAULT_COMPRESSION | (string & {});
 
 export type CompressionMode = "smaller" | "always";
 
+export type ChunkOrder = "input" | "name";
+
 export interface CompressionCodec {
   readonly name: CompressionAlgorithm;
   compress(bytes: Uint8Array): Promise<Uint8Array>;
@@ -46,6 +48,7 @@ export interface PayloadFileInput {
 export interface CreatePayloadOptions {
   readonly manifest?: JsonValue;
   readonly files: readonly PayloadFileInput[];
+  readonly chunkOrder?: ChunkOrder;
   readonly integrity?: IntegrityAlgorithm | false;
   readonly compression?: CompressionAlgorithm;
   readonly compressionMode?: CompressionMode;
