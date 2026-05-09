@@ -465,7 +465,7 @@ bool is_valid_chunk_name(const std::string& name) {
     const size_t slash = name.find('/', start);
     const size_t end = slash == std::string::npos ? name.size() : slash;
     const std::string segment = name.substr(start, end - start);
-    if (segment.empty() || segment == "..") {
+    if (segment.empty() || segment == "." || segment == "..") {
       return false;
     }
     if (slash == std::string::npos) {

@@ -122,6 +122,8 @@ describe("format validation", () => {
   it("rejects invalid chunk names", () => {
     expect(isValidChunkName("../secret.txt")).toBe(false);
     expect(() => assertValidChunkName("../secret.txt")).toThrow(PayloadFormatError);
+    expect(isValidChunkName("a/./b.txt")).toBe(false);
+    expect(() => assertValidChunkName("a/./b.txt")).toThrow(PayloadFormatError);
   });
 
   it("recognizes the reserved ByteDist chunk namespace", () => {

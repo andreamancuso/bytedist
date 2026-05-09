@@ -33,6 +33,7 @@ describe("public documentation", () => {
     expect(readme).toContain("Signing and provenance notes");
     expect(readme).toContain("Vite integration notes");
     expect(readme).toContain("Metadata and manifest notes");
+    expect(readme).toContain("Extraction safety notes");
     expect(readme).toContain("allowReservedChunkNames");
 
     for (const comparison of ["ZIP", "Emscripten", "Vite", "Web Bundles", "glTF/GLB"]) {
@@ -108,6 +109,19 @@ describe("public documentation", () => {
     expect(deterministicDoc).toContain("does not emit implicit timestamps");
     expect(deterministicDoc).toContain("packDirectory");
     expect(deterministicDoc).toContain("not authenticity");
+  });
+
+  it("documents extraction safety behavior", async () => {
+    const extractionDoc = await fs.readFile(
+      new URL("../docs/extraction-safety.md", import.meta.url),
+      "utf8"
+    );
+
+    expect(extractionDoc).toContain("public `extract` CLI command");
+    expect(extractionDoc).toContain("Windows reserved device");
+    expect(extractionDoc).toContain("case-insensitively");
+    expect(extractionDoc).toContain("overwrite: true");
+    expect(extractionDoc).toContain("Public extraction remains post-MVP");
   });
 
   it("documents Vite integration behavior", async () => {

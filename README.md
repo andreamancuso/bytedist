@@ -283,6 +283,7 @@ Available today:
 - Format documentation in [`docs/format.md`](docs/format.md).
 - Metadata and manifest notes in
   [`docs/metadata-and-manifests.md`](docs/metadata-and-manifests.md).
+- Extraction safety notes in [`docs/extraction-safety.md`](docs/extraction-safety.md).
 - Deterministic build notes in
   [`docs/deterministic-builds.md`](docs/deterministic-builds.md).
 - Browser loading notes in [`docs/browser.md`](docs/browser.md).

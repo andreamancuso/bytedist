@@ -137,6 +137,10 @@ As of May 9, 2026, the repository has completed the framing and setup work plus 
   - `PayloadMetadata` defines optional generic fields while keeping application manifests caller-owned;
   - `.bytedist` and `.bytedist/*` chunk names are reserved by default, with an explicit `allowReservedChunkNames` escape hatch;
   - `docs/metadata-and-manifests.md` documents the manifest, metadata, and reserved namespace conventions.
+- Stage 23 extraction safety primitives are complete:
+  - internal Node helpers plan and write extracted payload chunks with conservative path and overwrite checks;
+  - public `extract` remains absent from the CLI;
+  - `docs/extraction-safety.md` documents traversal, filename, collision, and overwrite rules.
 
 Built-in compression codecs, WASM compression parity, and broader compatibility notes are still future work.
 
@@ -2167,12 +2171,18 @@ Progress:
 
 ## Stage 23: Extraction Safety
 
+Status: Complete for reusable internal extraction-safety primitives, tests, and documentation. Public `bytedist extract` remains post-MVP and is still not listed by the CLI.
+
 ### 23.1 Path Traversal Defense
 
 Acceptance criteria:
 
 - Extract command never writes outside output directory.
 - Tests include malicious names.
+
+Progress:
+
+- Complete for internal primitives. Extraction planning resolves every target under the output directory, rejects unsafe chunk names, and fails before writing on traversal-like names. Public `extract` is intentionally still absent.
 
 ### 23.2 Filename Normalization
 
@@ -2181,12 +2191,20 @@ Acceptance criteria:
 - Unicode and platform-specific edge cases are documented.
 - Windows unsafe names handled or rejected.
 
+Progress:
+
+- Complete. Core chunk validation now rejects `.` path segments. Extraction planning rejects non-NFC names through core validation plus Windows-unsafe characters, trailing spaces/dots, reserved device basenames, and case-insensitive target collisions. `docs/extraction-safety.md` documents the policy.
+
 ### 23.3 Overwrite Policy
 
 Acceptance criteria:
 
 - CLI documents overwrite behavior.
 - `--force` or similar is supported if needed.
+
+Progress:
+
+- Complete for internal extraction helpers. `extractPayloadToDirectory` defaults to no overwrites, supports `overwrite: true` for existing regular files only, rejects directories and symlinks, and can verify archive integrity before writing. The public CLI keeps `extract` deferred, so no public `--force` flag is exposed yet.
 
 ## Stage 24: Performance Baseline
 

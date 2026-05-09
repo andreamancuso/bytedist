@@ -80,7 +80,7 @@ export function isValidChunkName(name: string): boolean {
   }
 
   const segments = name.split("/");
-  return segments.every((segment) => segment.length > 0 && segment !== "..");
+  return segments.every((segment) => segment.length > 0 && segment !== "." && segment !== "..");
 }
 
 export function assertValidChunkName(name: string): void {
