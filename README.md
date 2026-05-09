@@ -32,6 +32,16 @@ The current payload format is version `0` and is still pre-1.0. See
 [`docs/format.md`](docs/format.md) for the binary layout and compatibility
 notes. The documentation index starts at [`docs/index.md`](docs/index.md).
 
+## Versioning
+
+ByteDist package releases follow SemVer. While the package is `0.x`, public APIs
+and payload format details may still change between minor versions.
+
+The npm package version is separate from the `.bytedist` payload format version.
+The current payload format is version `0`; unsupported payload format versions
+are rejected rather than guessed. Keep source assets available so early payloads
+can be repacked if the pre-1.0 format changes.
+
 ## Quick Start
 
 Install dependencies and run the local CLI from this package:
@@ -280,6 +290,7 @@ Available today:
 - Detached payload signing and signature verification.
 - Optional Vite build plugin in `bytedist/vite`.
 - Adapter-based compression plumbing.
+- Changelog in [`CHANGELOG.md`](CHANGELOG.md).
 - Documentation index in [`docs/index.md`](docs/index.md).
 - Getting started guide in [`docs/getting-started.md`](docs/getting-started.md).
 - Security model guide in [`docs/security-model.md`](docs/security-model.md).
@@ -302,7 +313,7 @@ Planned next:
 
 - built-in compression adapters;
 - automated browser compatibility tests;
-- release preparation.
+- host application feedback loop.
 
 ## Scripts
 

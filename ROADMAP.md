@@ -29,7 +29,7 @@ HTML template + viewer JS + WASM decoder + .bytedist
 
 ## Current Progress
 
-As of May 9, 2026, the repository has completed the framing and setup work plus the first writer, reader, integrity, Node filesystem helper, CLI, browser loader, single-file HTML embedding, HTML bundler, compression-adapter, format-docs, README, example, experimental WASM-reader, Vite, deterministic-build, metadata/manifest convention, extraction-safety, performance-baseline, compatibility-matrix, and documentation-site slices:
+As of May 9, 2026, the repository has completed the framing and setup work plus the first writer, reader, integrity, Node filesystem helper, CLI, browser loader, single-file HTML embedding, HTML bundler, compression-adapter, format-docs, README, example, experimental WASM-reader, Vite, deterministic-build, metadata/manifest convention, extraction-safety, performance-baseline, compatibility-matrix, documentation-site, and release-preparation slices:
 
 - Stage 0 project framing is complete in `README.md`, with generic product language, target audience, license, and explicit no-DRM/no-secrets language.
 - Stage 1 repository setup is complete with npm package metadata, TypeScript, Vitest, Prettier, declaration-emitting build, package dry-run support, and GitHub Actions CI.
@@ -155,8 +155,13 @@ As of May 9, 2026, the repository has completed the framing and setup work plus 
   - `docs/browser.md` now covers fetch loading, embedded payload loading, chunk reads, range loading, and object URL lifecycle;
   - `docs/single-file-html.md` documents bundling, base64 overhead, local file caveats, and embedded-vs-external payload tradeoffs;
   - `docs/security-model.md` documents no-DRM/no-secrets limits, integrity limits, signing limits, WASM limits, and hardening terminology.
+- Stage 27 release preparation is complete:
+  - package metadata is set to `0.1.0-alpha.0`;
+  - `README.md` documents package SemVer separately from payload format version `0`;
+  - `CHANGELOG.md` records the first alpha release-preparation notes;
+  - the npm `files` allowlist includes release docs while keeping examples, tests, and generated outputs out of the package.
 
-Built-in compression codecs, WASM compression parity, automated browser compatibility tests, and release preparation are still future work.
+Built-in compression codecs, WASM compression parity, automated browser compatibility tests, and host application feedback are still future work.
 
 ## Important Product Language
 
@@ -2392,6 +2397,8 @@ Progress:
 
 ## Stage 27: Release Preparation
 
+Status: Complete for local `0.1.0-alpha.0` release preparation. Publishing to npm remains a manual follow-up.
+
 ### 27.1 Versioning Policy
 
 Adopt SemVer for library versions.
@@ -2400,12 +2407,20 @@ Acceptance criteria:
 
 - README explains package version vs payload format version.
 
+Progress:
+
+- Complete. `README.md` documents that npm package versions follow SemVer, that `0.x` releases may still change APIs or payload details, and that `.bytedist` payload format version `0` is separate from the package version.
+
 ### 27.2 Changelog
 
 Acceptance criteria:
 
 - `CHANGELOG.md` exists.
 - Release notes are generated or manually maintained.
+
+Progress:
+
+- Complete. `CHANGELOG.md` exists with manually maintained notes for `0.1.0-alpha.0`.
 
 ### 27.3 npm Publishing Setup
 
@@ -2415,6 +2430,10 @@ Acceptance criteria:
 - `npm pack` output inspected.
 - No test fixtures or huge examples accidentally published unless intended.
 
+Progress:
+
+- Complete for local release preparation. `package.json` includes `CHANGELOG.md` in the npm `files` allowlist and keeps examples, tests, generated fixtures, and generated WASM artifacts out of the package.
+
 ### 27.4 First Alpha Release
 
 Suggested version: `0.1.0-alpha.0`.
@@ -2423,6 +2442,10 @@ Acceptance criteria:
 
 - Published package installs cleanly.
 - README examples work from published package.
+
+Progress:
+
+- Complete for local alpha preparation. Package metadata is set to `0.1.0-alpha.0`, and local tarball installation is part of the Stage 27 verification checklist. Actual `npm publish` is intentionally left as a manual release action.
 
 ## Stage 28: Host-Application Feedback Loop
 
