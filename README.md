@@ -285,6 +285,7 @@ Available today:
   [`docs/metadata-and-manifests.md`](docs/metadata-and-manifests.md).
 - Extraction safety notes in [`docs/extraction-safety.md`](docs/extraction-safety.md).
 - Performance baseline notes in [`docs/performance.md`](docs/performance.md).
+- Compatibility matrix in [`docs/compatibility.md`](docs/compatibility.md).
 - Deterministic build notes in
   [`docs/deterministic-builds.md`](docs/deterministic-builds.md).
 - Browser loading notes in [`docs/browser.md`](docs/browser.md).

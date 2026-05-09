@@ -2,6 +2,9 @@
 
 ByteDist browser helpers are exported from `bytedist/browser`.
 
+See [`compatibility.md`](compatibility.md) for the current browser target matrix,
+runtime API assumptions, and manual smoke-test guidance.
+
 ## Full-Buffer Loading
 
 `loadPayloadFromUrl`, `loadPayloadFromBlob`, `loadPayloadFromFile`, and

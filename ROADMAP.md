@@ -29,7 +29,7 @@ HTML template + viewer JS + WASM decoder + .bytedist
 
 ## Current Progress
 
-As of May 9, 2026, the repository has completed the framing and setup work plus the first writer, reader, integrity, Node filesystem helper, CLI, browser loader, single-file HTML embedding, HTML bundler, compression-adapter, format-docs, README, example, experimental WASM-reader, Vite, deterministic-build, metadata/manifest convention, extraction-safety, and performance-baseline slices:
+As of May 9, 2026, the repository has completed the framing and setup work plus the first writer, reader, integrity, Node filesystem helper, CLI, browser loader, single-file HTML embedding, HTML bundler, compression-adapter, format-docs, README, example, experimental WASM-reader, Vite, deterministic-build, metadata/manifest convention, extraction-safety, performance-baseline, and compatibility-matrix slices:
 
 - Stage 0 project framing is complete in `README.md`, with generic product language, target audience, license, and explicit no-DRM/no-secrets language.
 - Stage 1 repository setup is complete with npm package metadata, TypeScript, Vitest, Prettier, declaration-emitting build, package dry-run support, and GitHub Actions CI.
@@ -145,8 +145,12 @@ As of May 9, 2026, the repository has completed the framing and setup work plus 
   - `npm run perf:baseline` and `npm run perf:baseline:quick` measure packer, reader, verification, and single-file base64 costs with generated deterministic payloads;
   - benchmark compression cases use script-local Node zlib adapters without adding public runtime codecs;
   - `docs/performance.md` documents how to run local baselines and how to choose between embedded, external, compressed, and range-loaded artifacts.
+- Stage 25 compatibility matrix is complete:
+  - `docs/compatibility.md` documents browser, Node, and bundler compatibility status;
+  - CI runs the verification job on Node 20 and Node 22;
+  - Vite and no-bundler paths are documented as tested, while webpack, Rollup, and esbuild are documented as expected but not continuously tested.
 
-Built-in compression codecs, WASM compression parity, and broader compatibility notes are still future work.
+Built-in compression codecs, WASM compression parity, and automated browser compatibility tests are still future work.
 
 ## Important Product Language
 
@@ -2264,6 +2268,8 @@ Progress:
 
 ## Stage 25: Compatibility Matrix
 
+Status: Complete for documented browser, Node, and bundler compatibility plus Node 20/22 CI coverage. Automated browser smoke tests remain future work.
+
 ### 25.1 Browser Matrix
 
 Define support target:
@@ -2278,6 +2284,10 @@ Acceptance criteria:
 - Browser limitations documented.
 - Demos tested manually or via Playwright.
 
+Progress:
+
+- Complete for documented/manual compatibility. `docs/compatibility.md` documents current Chromium, Edge, Firefox, Safari, and iOS Safari targets, required browser APIs, range-loading requirements, embedded payload memory caveats, WebCrypto caveats, and manual example smoke checks. Playwright automation is deferred.
+
 ### 25.2 Node Matrix
 
 Define supported Node versions.
@@ -2285,6 +2295,10 @@ Define supported Node versions.
 Acceptance criteria:
 
 - CI tests supported Node versions.
+
+Progress:
+
+- Complete. `package.json` keeps Node `>=20`, and GitHub Actions now runs the verification job on Node 20 and Node 22.
 
 ### 25.3 Bundler Matrix
 
@@ -2299,6 +2313,10 @@ Document compatibility with:
 Acceptance criteria:
 
 - At least Vite and no-bundler examples exist.
+
+Progress:
+
+- Complete. `docs/compatibility.md` marks Vite and no-bundler paths as tested through existing examples. webpack, Rollup, and esbuild are documented as ESM-compatible expected paths that are not continuously tested yet.
 
 ## Stage 26: Documentation Site
 
