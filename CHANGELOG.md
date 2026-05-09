@@ -8,7 +8,7 @@ pre-1.0.
 
 ## 0.1.0-alpha.0 - 2026-05-09
 
-First alpha release preparation.
+First alpha release.
 
 ### Added
 

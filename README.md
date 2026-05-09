@@ -37,6 +37,12 @@ notes. The documentation index starts at [`docs/index.md`](docs/index.md).
 ByteDist package releases follow SemVer. While the package is `0.x`, public APIs
 and payload format details may still change between minor versions.
 
+During the alpha period, install the published package with:
+
+```sh
+npm install bytedist@alpha
+```
+
 The npm package version is separate from the `.bytedist` payload format version.
 The current payload format is version `0`; unsupported payload format versions
 are rejected rather than guessed. Keep source assets available so early payloads

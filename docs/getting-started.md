@@ -8,7 +8,7 @@ payload.
 In an application that consumes ByteDist:
 
 ```sh
-npm install bytedist
+npm install bytedist@alpha
 ```
 
 When working from this repository:

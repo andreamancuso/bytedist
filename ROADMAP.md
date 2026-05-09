@@ -2397,7 +2397,7 @@ Progress:
 
 ## Stage 27: Release Preparation
 
-Status: Complete for local `0.1.0-alpha.0` release preparation. Publishing to npm remains a manual follow-up.
+Status: Complete for `0.1.0-alpha.0` release preparation. Publishing to npm is handled as an explicit manual release action.
 
 ### 27.1 Versioning Policy
 
