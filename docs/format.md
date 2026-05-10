@@ -87,7 +87,7 @@ Optional fields:
 
 ### TOC Encoding Decision
 
-Stage 17 measured TOC size and parse/stringify cost with:
+TOC size and parse/stringify cost were measured with:
 
 ```sh
 npm run toc:measure
